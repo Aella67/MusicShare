@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Register - MusicShare{% endblock %}
+{% block content %}
+{% macro field(f) %}
+  <div class="mb-3">
+    {{ f.label(class="form-label") }}
+    {{ f(class="form-control" ~ (" is-invalid" if f.errors else "")) }}
+    {% for e in f.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+  </div>
+{% endmacro %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <h1 class="h3 mb-3">Create your account</h1>
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      {{ field(form.username) }}
+      {{ field(form.email) }}
+      {{ field(form.password) }}
+      {{ field(form.confirm_password) }}
+      <button type="submit" class="btn btn-primary w-100">Sign up</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
