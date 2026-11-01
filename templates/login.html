@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Log in - MusicShare{% endblock %}
+
+{% macro field(f) %}
+  <div class="mb-3">
+    {{ f.label(class="form-label") }}
+    {{ f(class="form-control" ~ (" is-invalid" if f.errors else "")) }}
+    {% for error in f.errors %}
+      <div class="invalid-feedback">{{ error }}</div>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <h1 class="h2 mb-4">Log in</h1>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      {{ field(form.email) }}
+      {{ field(form.password) }}
+      <button type="submit" class="btn btn-primary w-100">Log in</button>
+    </form>
+    <p class="mt-3 text-muted">
+      No account yet? <a href="{{ url_for('register') }}">Sign up</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

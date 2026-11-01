@@ -3,6 +3,7 @@ from wtforms import StringField, PasswordField, EmailField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp, ValidationError
 from models.user import User
 
+
 class RegisterForm(FlaskForm):
     username = StringField("Username", validators=[
         DataRequired(), Length(min=3, max=50),
@@ -21,3 +22,8 @@ class RegisterForm(FlaskForm):
     def validate_email(self, field):
         if User.find_by_email(field.data.strip().lower()):
             raise ValidationError("An account with that email already exists.")
+
+
+class LoginForm(FlaskForm):
+    email = EmailField("Email", validators=[DataRequired(), Email()])
+    password = PasswordField("Password", validators=[DataRequired()])
