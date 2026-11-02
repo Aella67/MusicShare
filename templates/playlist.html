@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ playlist.name }} - MusicShare{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('dashboard') }}" class="text-decoration-none">&larr; Back to dashboard</a>
+<h1 class="h2 mt-2 mb-4">{{ playlist.name }}</h1>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Add a song</h2>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        {{ form.url.label(class="form-label") }}
+        {{ form.url(class="form-control" ~ (" is-invalid" if form.url.errors else ""),
+                    placeholder="https://www.youtube.com/watch?v=... or a SoundCloud link") }}
+        {% for error in form.url.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        {{ form.title.label(class="form-label") }}
+        {{ form.title(class="form-control" ~ (" is-invalid" if form.title.errors else "")) }}
+        {% for error in form.title.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary">Add song</button>
+    </form>
+  </div>
+</div>
+
+<h2 class="h5">Songs ({{ tracks|length }})</h2>
+{% if tracks %}
+  <ul class="list-group">
+    {% for t in tracks %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>
+          <span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}
+        </span>
+        <span>
+          <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }} me-2">
+            {{ t.source }}
+          </span>
+          <a href="{{ t.source_url }}" target="_blank" rel="noopener noreferrer"
+             class="small">open</a>
+        </span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="text-muted">No songs yet. Paste a link above to add your first one.</p>
+{% endif %}
+{% endblock %}

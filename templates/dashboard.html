@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - MusicShare{% endblock %}
+
+{% block content %}
+<h1 class="h2 mb-4">Welcome, {{ current_user.username }}!</h1>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5 card-title">My playlists</h2>
+
+        <form method="post" class="d-flex gap-2 mb-3" novalidate>
+          {{ form.hidden_tag() }}
+          {{ form.name(class="form-control" ~ (" is-invalid" if form.name.errors else ""),
+                       placeholder="New playlist name") }}
+          <button type="submit" class="btn btn-primary">Create</button>
+        </form>
+        {% for error in form.name.errors %}
+          <div class="text-danger small mb-2">{{ error }}</div>
+        {% endfor %}
+
+        {% if playlists %}
+          <ul class="list-group">
+            {% for p in playlists %}
+                            <li class="list-group-item">
+                <a href="{{ url_for('playlist_detail', playlist_id=p.id) }}"
+                   class="text-decoration-none">{{ p.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">No playlists yet. Create your first one above.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5 card-title">My rooms</h2>
+        <p class="card-text text-muted">Create a room and share its link or code. Coming soon.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

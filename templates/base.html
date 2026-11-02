@@ -10,10 +10,14 @@
   <nav class="navbar navbar-expand navbar-dark bg-dark">
     <div class="container">
       <a class="navbar-brand" href="{{ url_for('home') }}">🎵 MusicShare</a>
-      <ul class="navbar-nav ms-auto align-items-center">
+            <ul class="navbar-nav ms-auto align-items-center">
         {% if current_user %}
           <li class="nav-item">
-            <span class="navbar-text me-3">Hi, {{ current_user.username }}</span>
+            <a class="nav-link {% if request.endpoint == 'dashboard' %}active fw-semibold{% endif %}"
+               href="{{ url_for('dashboard') }}">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <span class="navbar-text mx-3">Hi, {{ current_user.username }}</span>
           </li>
           <li class="nav-item">
             <form method="post" action="{{ url_for('logout') }}" class="m-0">

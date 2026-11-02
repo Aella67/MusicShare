@@ -2,6 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, EmailField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp, ValidationError
 from models.user import User
+from models.track import Track
 
 
 class RegisterForm(FlaskForm):
@@ -27,3 +28,16 @@ class RegisterForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = EmailField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
+
+
+class PlaylistForm(FlaskForm):
+    name = StringField("Playlist name", validators=[DataRequired(), Length(max=100)])
+
+
+class TrackForm(FlaskForm):
+    url = StringField("Song link", validators=[DataRequired(), Length(max=500)])
+    title = StringField("Title", validators=[DataRequired(), Length(max=200)])
+
+    def validate_url(self, field):
+        if Track.from_url(0, field.data, "") is None:
+            raise ValidationError("Paste a valid YouTube video or SoundCloud link.")
