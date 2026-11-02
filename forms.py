@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, EmailField
+from wtforms import StringField, PasswordField, EmailField, SelectField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp, ValidationError
 from models.user import User
 from models.track import Track
@@ -41,3 +41,8 @@ class TrackForm(FlaskForm):
     def validate_url(self, field):
         if Track.from_url(0, field.data, "") is None:
             raise ValidationError("Paste a valid YouTube video or SoundCloud link.")
+
+
+class RoomForm(FlaskForm):
+    name = StringField("Room name", validators=[DataRequired(), Length(max=100)])
+    playlist_id = SelectField("Playlist", coerce=int)

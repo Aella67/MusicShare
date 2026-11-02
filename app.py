@@ -3,10 +3,11 @@ from flask import Flask, render_template, redirect, url_for, flash, session, abo
 from flask_wtf import CSRFProtect
 import mysql.connector
 from config import Config
-from forms import RegisterForm, LoginForm, PlaylistForm, TrackForm
+from forms import RegisterForm, LoginForm, PlaylistForm, TrackForm, RoomForm
 from models.user import User
 from models.playlist import Playlist
 from models.track import Track
+from models.room import Room
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -99,6 +100,30 @@ def playlist_detail(playlist_id):
         return redirect(url_for("playlist_detail", playlist_id=playlist.id))
     tracks = Track.find_by_playlist(playlist.id)
     return render_template("playlist.html", playlist=playlist, form=form, tracks=tracks)
+
+@app.route("/rooms/new", methods=["GET", "POST"])
+@login_required
+def new_room():
+    form = RoomForm()
+    playlists = Playlist.find_by_user(session["user_id"])
+    form.playlist_id.choices = [(0, "No playlist yet")] + [(p.id, p.name) for p in playlists]
+    if form.validate_on_submit():
+        playlist_id = form.playlist_id.data or None
+        room = Room(None, session["user_id"], playlist_id, form.name.data.strip())
+        room.save()
+        flash("Room created! Share the code or link with your listeners.", "success")
+        return redirect(url_for("room_page", code=room.share_code))
+    return render_template("new_room.html", form=form)
+
+
+@app.route("/room/<code>")
+def room_page(code):
+    room = Room.find_by_code(code)
+    if room is None:
+        abort(404)
+    is_host = session.get("user_id") == room.host_id
+    tracks = Track.find_by_playlist(room.playlist_id) if room.playlist_id else []
+    return render_template("room.html", room=room, is_host=is_host, tracks=tracks)
 
 
 if __name__ == "__main__":

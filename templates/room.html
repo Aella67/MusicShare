@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ room.name }} - MusicShare{% endblock %}
+
+{% block content %}
+<h1 class="h2 mb-1">{{ room.name }}</h1>
+{% if not room.is_open %}<span class="badge bg-secondary">Closed</span>{% endif %}
+
+{% if is_host %}
+  <div class="card my-4">
+    <div class="card-body">
+      <h2 class="h5 card-title">Invite listeners</h2>
+      <label class="form-label" for="room-code">Room code</label>
+      <div class="input-group mb-3">
+        <input id="room-code" class="form-control fs-5" value="{{ room.share_code }}" readonly>
+        <button class="btn btn-outline-secondary" type="button" data-copy="room-code">Copy</button>
+      </div>
+      <label class="form-label" for="room-link">Share link</label>
+      <div class="input-group">
+        <input id="room-link" class="form-control"
+               value="{{ url_for('room_page', code=room.share_code, _external=True) }}" readonly>
+        <button class="btn btn-outline-secondary" type="button" data-copy="room-link">Copy</button>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <p class="text-muted my-4">Joining as a listener is coming soon.</p>
+{% endif %}
+
+<h2 class="h5">Songs ({{ tracks|length }})</h2>
+{% if tracks %}
+  <ul class="list-group">
+    {% for t in tracks %}
+      <li class="list-group-item d-flex justify-content-between">
+        <span><span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}</span>
+        <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">{{ t.source }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="text-muted">No songs yet.</p>
+{% endif %}
+
+<script>
+  document.querySelectorAll("[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var input = document.getElementById(btn.dataset.copy);
+      navigator.clipboard.writeText(input.value).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+      });
+    });
+  });
+</script>
+{% endblock %}
