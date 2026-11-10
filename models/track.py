@@ -42,6 +42,15 @@ class Track:
         finally:
             conn.close()
 
+    def delete(self):
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM tracks WHERE id = %s", (self.id,))
+            conn.commit()
+        finally:
+            conn.close()
+
     @classmethod
     def from_url(cls, playlist_id, url, title):
         """Return a YouTubeTrack or SoundCloudTrack, or None if the link isn't supported."""
@@ -56,6 +65,21 @@ class Track:
         if host in SOUNDCLOUD_HOSTS:
             return SoundCloudTrack(None, playlist_id, url, title)
         return None
+
+    @classmethod
+    def find_by_id(cls, track_id):
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, playlist_id, source, source_url, title, position "
+                "FROM tracks WHERE id = %s",
+                (track_id,),
+            )
+            row = cur.fetchone()
+            return cls._from_row(row) if row else None
+        finally:
+            conn.close()
 
     @classmethod
     def find_by_playlist(cls, playlist_id):

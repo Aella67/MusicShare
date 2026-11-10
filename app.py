@@ -133,6 +133,31 @@ def playlist_detail(playlist_id):
     return render_template("playlist.html", playlist=playlist, form=form, tracks=tracks)
 
 
+@app.route("/playlists/<int:playlist_id>/delete", methods=["POST"])
+@login_required
+def delete_playlist(playlist_id):
+    playlist = Playlist.find_by_id(playlist_id)
+    if playlist is None or playlist.user_id != session["user_id"]:
+        abort(404)
+    playlist.delete()
+    flash("Playlist deleted.", "info")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/playlists/<int:playlist_id>/tracks/<int:track_id>/delete", methods=["POST"])
+@login_required
+def delete_track(playlist_id, track_id):
+    playlist = Playlist.find_by_id(playlist_id)
+    if playlist is None or playlist.user_id != session["user_id"]:
+        abort(404)
+    track = Track.find_by_id(track_id)
+    if track is None or track.playlist_id != playlist.id:
+        abort(404)
+    track.delete()
+    flash("Song removed.", "info")
+    return redirect(url_for("playlist_detail", playlist_id=playlist.id))
+
+
 @app.route("/rooms/new", methods=["GET", "POST"])
 @login_required
 def new_room():
@@ -175,6 +200,17 @@ def room_page(code):
                            last_reaction_id=Reaction.latest_id(room.id),
                            chat_history=history,
                            last_message_id=history[-1]["id"] if history else 0)
+
+
+@app.route("/room/<code>/delete", methods=["POST"])
+@login_required
+def delete_room(code):
+    room = Room.find_by_code(code)
+    if room is None or room.host_id != session["user_id"]:
+        abort(404)
+    room.delete()
+    flash("Room deleted.", "info")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/room/<code>/state", methods=["GET", "POST"])

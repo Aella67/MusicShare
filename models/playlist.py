@@ -20,6 +20,17 @@ class Playlist:
         finally:
             conn.close()
 
+    def delete(self):
+        """Delete the playlist. Its songs are removed too, and rooms using it keep
+        existing with no playlist (set by the database foreign keys)."""
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM playlists WHERE id = %s", (self.id,))
+            conn.commit()
+        finally:
+            conn.close()
+
     @classmethod
     def find_by_user(cls, user_id):
         conn = get_connection()

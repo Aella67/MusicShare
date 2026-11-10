@@ -59,6 +59,17 @@ class Room:
         finally:
             conn.close()
 
+    def delete(self):
+        """Delete the room. Its reactions and chat messages are removed too
+        (set by the database foreign keys)."""
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM rooms WHERE id = %s", (self.id,))
+            conn.commit()
+        finally:
+            conn.close()
+
     def save_state(self, index, position, playing):
         """Remember what the host's player is doing right now."""
         conn = get_connection()

@@ -23,9 +23,15 @@
         {% if playlists %}
           <ul class="list-group">
             {% for p in playlists %}
-                            <li class="list-group-item">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
                 <a href="{{ url_for('playlist_detail', playlist_id=p.id) }}"
                    class="text-decoration-none">{{ p.name }}</a>
+                <form method="post" action="{{ url_for('delete_playlist', playlist_id=p.id) }}"
+                      class="m-0"
+                      onsubmit="return confirm('Delete this playlist and all its songs?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                </form>
               </li>
             {% endfor %}
           </ul>
@@ -49,16 +55,22 @@
               <li class="list-group-item d-flex justify-content-between align-items-center">
                 <a href="{{ url_for('room_page', code=r.share_code) }}"
                    class="text-decoration-none">{{ r.name }}</a>
-                <span>
+                <span class="d-flex align-items-center gap-2">
                   <code>{{ r.share_code }}</code>
-                  {% if not r.is_open %}<span class="badge bg-secondary ms-1">closed</span>{% endif %}
+                  {% if not r.is_open %}<span class="badge bg-secondary">closed</span>{% endif %}
+                  <form method="post" action="{{ url_for('delete_room', code=r.share_code) }}"
+                        class="m-0"
+                        onsubmit="return confirm('Delete this room? Its chat and reactions will be removed.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                  </form>
                 </span>
               </li>
             {% endfor %}
           </ul>
         {% else %}
           <p class="text-muted mb-0">No rooms yet. Create one to start listening together.</p>
-        {% endif %}   
+        {% endif %}
       </div>
     </div>
   </div>
