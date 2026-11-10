@@ -12,6 +12,7 @@ from models.playlist import Playlist
 from models.track import Track
 from models.room import Room
 from models.reaction import Reaction, ALLOWED_REACTIONS
+from models.message import Message, MAX_LENGTH
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -166,11 +167,14 @@ def room_page(code):
         session["guest_name"] = guest_form.display_name.data.strip()
         return redirect(url_for("room_page", code=room.share_code))
     tracks = Track.find_by_playlist(room.playlist_id) if room.playlist_id else []
+    history = [m.to_dict() for m in Message.find_recent(room.id)]
     return render_template("room.html", room=room, is_host=is_host,
                            viewer=viewer_name(), guest_form=guest_form,
                            tracks=tracks, queue=youtube_queue(room),
                            state=room.get_state(),
-                           last_reaction_id=Reaction.latest_id(room.id))
+                           last_reaction_id=Reaction.latest_id(room.id),
+                           chat_history=history,
+                           last_message_id=history[-1]["id"] if history else 0)
 
 
 @app.route("/room/<code>/state", methods=["GET", "POST"])
@@ -239,6 +243,43 @@ def room_reactions(code):
         "reactions": [{"id": r.id, "name": r.display_name, "emoji": r.emoji} for r in items],
         "last_id": last_id,
     })
+
+
+@app.route("/room/<code>/chat", methods=["POST"])
+def room_chat(code):
+    """Anyone in the room (host, member or guest) can send a chat message."""
+    room = Room.find_by_code(code)
+    if room is None:
+        abort(404)
+    if not can_listen(room):
+        abort(403)
+    data = request.get_json(silent=True) or {}
+    body = data.get("body")
+    if not isinstance(body, str):
+        abort(400)
+    body = body.strip()
+    if not body or len(body) > MAX_LENGTH:
+        abort(400)
+    now = time.time()
+    if now - session.get("last_chat", 0) < 1:   # simple anti-spam: 1 message per second
+        abort(429)
+    session["last_chat"] = now
+    Message(None, room.id, viewer_name(), body).save()
+    return jsonify({"ok": True})
+
+
+@app.route("/room/<code>/messages")
+def room_messages(code):
+    """Chat messages newer than ?since=<id>."""
+    room = Room.find_by_code(code)
+    if room is None:
+        abort(404)
+    if not can_listen(room):
+        abort(403)
+    since = request.args.get("since", 0, type=int)
+    items = Message.find_since(room.id, since)
+    last_id = items[-1].id if items else since
+    return jsonify({"messages": [m.to_dict() for m in items], "last_id": last_id})
 
 
 if __name__ == "__main__":

@@ -57,6 +57,7 @@
       <h2 class="h5 card-title">Now playing</h2>
       <p id="now-playing" class="text-muted">Loading...</p>
       <div class="ratio ratio-16x9 mb-3"><div id="player"></div></div>
+      <p id="player-note" class="small text-warning-emphasis mb-2"></p>
       {% if is_host %}
         <button id="btn-next" class="btn btn-outline-secondary btn-sm" type="button">Next song</button>
         <span class="small text-muted ms-2">Listeners follow your player.</span>
@@ -90,6 +91,19 @@
     <div id="reaction-buttons" class="d-flex flex-wrap gap-2"></div>
   </div>
 </div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Chat</h2>
+    <div id="chat-log" class="border rounded p-2 mb-3" style="height: 240px; overflow-y: auto;">
+      <p id="chat-empty" class="text-muted small mb-0">No messages yet. Say hi!</p>
+    </div>
+    <form id="chat-form" class="d-flex gap-2" autocomplete="off">
+      <input id="chat-input" class="form-control" maxlength="300" placeholder="Type a message...">
+      <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+  </div>
+</div>
 {% endif %}
 
 <h2 class="h5">Songs ({{ tracks|length }})</h2>
@@ -118,6 +132,7 @@
   var DRIFT_SECONDS = 3;
   var index = 0;
   var player;
+  var failures = 0;                          // songs in a row that YouTube refused to play
 
   function setText(id, text) {
     var el = document.getElementById(id);
@@ -218,9 +233,28 @@
           }
         },
         onStateChange: function (e) {
+          if (e.data === YT.PlayerState.PLAYING) {
+            failures = 0;
+            setTimeout(function () { setText("player-note", ""); }, 4000);
+          }
           if (!isHost) return;
           if (e.data === YT.PlayerState.ENDED) hostPlayIndex(index + 1);
           else pushState();
+        },
+        // YouTube refuses some videos (embedding off, private, removed, blocked in a country)
+        onError: function () {
+          var title = queue[index].title;
+          if (!isHost) {
+            setText("player-note", "\"" + title + "\" can't be played here. The host will skip it.");
+            return;
+          }
+          failures += 1;
+          if (failures >= queue.length) {
+            setText("player-note", "None of the songs in this playlist can be played here.");
+            return;
+          }
+          setText("player-note", "\"" + title + "\" is unavailable on YouTube. Skipping...");
+          setTimeout(function () { hostPlayIndex(index + 1); }, 1500);
         }
       }
     });
@@ -306,6 +340,71 @@
     });
 
     setInterval(pollReactions, 2000);
+  })();
+</script>
+
+<script>
+  (function () {
+    var SEND_URL = {{ url_for('room_chat', code=room.share_code)|tojson }};
+    var FEED_URL = {{ url_for('room_messages', code=room.share_code)|tojson }};
+    var chatCsrf = {{ csrf_token()|tojson }};
+    var myName = {{ viewer|tojson }};
+    var lastId = {{ last_message_id|tojson }};
+    var history = {{ chat_history|tojson }};
+    var log = document.getElementById("chat-log");
+    var form = document.getElementById("chat-form");
+    var input = document.getElementById("chat-input");
+    var busy = false;
+
+    function addMessage(m) {
+      var empty = document.getElementById("chat-empty");
+      if (empty) empty.remove();
+      var atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+      var row = document.createElement("div");
+      row.className = "mb-1";
+      var who = document.createElement("strong");
+      who.textContent = m.name + ": ";          // textContent, so messages can't inject HTML
+      if (m.name === myName) who.className = "text-primary";
+      var text = document.createElement("span");
+      text.textContent = m.body;
+      row.appendChild(who);
+      row.appendChild(text);
+      log.appendChild(row);
+      if (atBottom) log.scrollTop = log.scrollHeight;
+    }
+
+    function pollMessages() {
+      if (busy) return;
+      busy = true;
+      fetch(FEED_URL + "?since=" + lastId, {credentials: "same-origin"})
+        .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
+        .then(function (d) {
+          lastId = d.last_id;
+          d.messages.forEach(addMessage);
+        })
+        .catch(function () {})
+        .then(function () { busy = false; });
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      fetch(SEND_URL, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": chatCsrf},
+        body: JSON.stringify({body: text})
+      }).then(function (r) {
+        if (!r.ok) { input.value = text; throw new Error("not sent"); }   // keep the text if it failed
+        pollMessages();
+      }).catch(function () {});
+    });
+
+    history.forEach(addMessage);
+    log.scrollTop = log.scrollHeight;
+    setInterval(pollMessages, 2000);
   })();
 </script>
 {% endif %}
