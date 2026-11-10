@@ -57,9 +57,39 @@
       <h2 class="h5 card-title">Now playing</h2>
       <p id="now-playing" class="text-muted">Loading...</p>
       <div class="ratio ratio-16x9 mb-3"><div id="player"></div></div>
-      <button id="btn-next" class="btn btn-outline-secondary btn-sm" type="button">Next song</button>
+      {% if is_host %}
+        <button id="btn-next" class="btn btn-outline-secondary btn-sm" type="button">Next song</button>
+        <span class="small text-muted ms-2">Listeners follow your player.</span>
+      {% else %}
+        <button id="btn-listen" class="btn btn-primary" type="button">&#9654; Start listening</button>
+        <span id="sync-status" class="small text-muted ms-2"></span>
+      {% endif %}
     </div>
   </div>
+{% endif %}
+
+{% if can_listen %}
+<style>
+  .reaction-stage { position: relative; height: 140px; overflow: hidden;
+                    border-radius: .5rem; background: rgba(0, 0, 0, .04); }
+  .reaction-bubble { position: absolute; bottom: 0; display: flex; flex-direction: column;
+                     align-items: center; pointer-events: none;
+                     animation: react-float 3s ease-out forwards; }
+  .reaction-emoji { font-size: 1.8rem; line-height: 1; }
+  .reaction-name { font-size: .7rem; color: #6c757d; max-width: 90px; overflow: hidden;
+                   text-overflow: ellipsis; white-space: nowrap; }
+  @keyframes react-float {
+    0%   { transform: translateY(0);      opacity: 1; }
+    100% { transform: translateY(-120px); opacity: 0; }
+  }
+</style>
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Reactions</h2>
+    <div id="reaction-stage" class="reaction-stage mb-3"></div>
+    <div id="reaction-buttons" class="d-flex flex-wrap gap-2"></div>
+  </div>
+</div>
 {% endif %}
 
 <h2 class="h5">Songs ({{ tracks|length }})</h2>
@@ -79,39 +109,204 @@
 {% if can_listen and tracks %}
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-  var queue = {{ queue|tojson }}.filter(function (t) { return t.source === "youtube"; });
+  var queue = {{ queue|tojson }};            // YouTube songs only; sync index points into this list
+  var initialState = {{ state|tojson }};
+  var isHost = {{ 'true' if is_host else 'false' }};
+  var STATE_URL = {{ url_for('room_state', code=room.share_code)|tojson }};
+  var CSRF = {{ csrf_token()|tojson }};
+  var POLL_MS = 2000;
+  var DRIFT_SECONDS = 3;
   var index = 0;
   var player;
 
-  function showTitle() {
-    var label = document.getElementById("now-playing");
-    if (label) label.textContent = (index + 1) + ". " + queue[index].title;
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
   }
 
-  function playIndex(i) {
+  function showTitle() {
+    setText("now-playing", (index + 1) + ". " + queue[index].title);
+  }
+
+  // ---------- host: send my player's state to the server ----------
+  function pushState(override) {
+    if (!isHost || !player || !player.getPlayerState) return;
+    var st = player.getPlayerState();
+    if (st === -1 && !override) return;   // not started yet
+    var body = override || {
+      index: index,
+      position: player.getCurrentTime(),
+      playing: st === YT.PlayerState.PLAYING || st === YT.PlayerState.BUFFERING
+    };
+    fetch(STATE_URL, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": CSRF},
+      body: JSON.stringify(body)
+    }).catch(function () {});
+  }
+
+  function hostPlayIndex(i) {
     index = i % queue.length;
     player.loadVideoById(queue[index].media_id);
     showTitle();
+    pushState({index: index, position: 0, playing: true});
+  }
+
+  // ---------- listener: follow the host ----------
+  function applyState(s) {
+    var i = s.index;
+    if (i < 0 || i >= queue.length) return;
+    if (i !== index) {
+      index = i;
+      showTitle();
+      var opts = {videoId: queue[i].media_id, startSeconds: s.position};
+      if (s.playing) player.loadVideoById(opts); else player.cueVideoById(opts);
+      return;
+    }
+    var st = player.getPlayerState();
+    if (Math.abs(player.getCurrentTime() - s.position) > DRIFT_SECONDS) {
+      player.seekTo(s.position, true);
+    }
+    if (s.playing && st !== YT.PlayerState.PLAYING && st !== YT.PlayerState.BUFFERING) {
+      player.playVideo();
+    }
+    if (!s.playing && st === YT.PlayerState.PLAYING) {
+      player.pauseVideo();
+    }
+  }
+
+  function pollState() {
+    fetch(STATE_URL, {credentials: "same-origin"})
+      .then(function (r) {
+        if (r.status === 403) { setText("sync-status", "This room is closed."); throw new Error("closed"); }
+        if (!r.ok) throw new Error("bad");
+        return r.json();
+      })
+      .then(function (s) {
+        applyState(s);
+        setText("sync-status", s.playing ? "In sync with the host" : "Host paused");
+      })
+      .catch(function () {});
   }
 
   function onYouTubeIframeAPIReady() {
     if (queue.length === 0) {
-      document.getElementById("now-playing").textContent = "No YouTube songs to play yet.";
+      setText("now-playing", "No YouTube songs to play yet.");
       return;
     }
+    var start = 0, startPos = 0;
+    if (isHost && initialState.index >= 0 && initialState.index < queue.length) {
+      start = initialState.index;          // host reloaded: pick up where they left off
+      startPos = initialState.position;
+    }
+    index = start;
     player = new YT.Player("player", {
-      videoId: queue[0].media_id,
+      videoId: queue[start].media_id,
+      playerVars: {
+        start: Math.floor(startPos),
+        controls: isHost ? 1 : 0,          // listeners can't control playback
+        disablekb: isHost ? 0 : 1,
+        rel: 0
+      },
       events: {
-        onReady: showTitle,
+        onReady: function () {
+          showTitle();
+          if (isHost) {
+            pushState({index: index, position: startPos, playing: false});
+            setInterval(pushState, POLL_MS);
+          }
+        },
         onStateChange: function (e) {
-          if (e.data === YT.PlayerState.ENDED) playIndex(index + 1);
+          if (!isHost) return;
+          if (e.data === YT.PlayerState.ENDED) hostPlayIndex(index + 1);
+          else pushState();
         }
       }
     });
-    document.getElementById("btn-next").addEventListener("click", function () {
-      playIndex(index + 1);
-    });
+
+    if (isHost) {
+      document.getElementById("btn-next").addEventListener("click", function () {
+        hostPlayIndex(index + 1);
+      });
+    } else {
+      // A click is needed once, because browsers block sound until the page is clicked.
+      document.getElementById("btn-listen").addEventListener("click", function () {
+        this.disabled = true;
+        this.textContent = "Listening";
+        pollState();
+        setInterval(pollState, POLL_MS);
+      });
+    }
   }
+</script>
+{% endif %}
+
+{% if can_listen %}
+<script>
+  (function () {
+    var EMOJI = {
+      heart: "\u2764\uFE0F", fire: "\uD83D\uDD25", clap: "\uD83D\uDC4F",
+      laugh: "\uD83D\uDE02", wow: "\uD83D\uDE2E", music: "\uD83C\uDFB5"
+    };
+    var REACT_URL = {{ url_for('room_react', code=room.share_code)|tojson }};
+    var FEED_URL = {{ url_for('room_reactions', code=room.share_code)|tojson }};
+    var reactCsrf = {{ csrf_token()|tojson }};
+    var lastId = {{ last_reaction_id|tojson }};
+    var stage = document.getElementById("reaction-stage");
+    var box = document.getElementById("reaction-buttons");
+    var busy = false;
+
+    function floatUp(name, key) {
+      if (stage.children.length > 30) stage.removeChild(stage.firstChild);
+      var bubble = document.createElement("div");
+      bubble.className = "reaction-bubble";
+      bubble.style.left = (5 + Math.random() * 80) + "%";
+      var big = document.createElement("span");
+      big.className = "reaction-emoji";
+      big.textContent = EMOJI[key] || "";
+      var who = document.createElement("span");
+      who.className = "reaction-name";
+      who.textContent = name;              // textContent, so names can't inject HTML
+      bubble.appendChild(big);
+      bubble.appendChild(who);
+      stage.appendChild(bubble);
+      setTimeout(function () { bubble.remove(); }, 3000);
+    }
+
+    function pollReactions() {
+      if (busy) return;
+      busy = true;
+      fetch(FEED_URL + "?since=" + lastId, {credentials: "same-origin"})
+        .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
+        .then(function (d) {
+          lastId = d.last_id;
+          d.reactions.forEach(function (r) { floatUp(r.name, r.emoji); });
+        })
+        .catch(function () {})
+        .then(function () { busy = false; });
+    }
+
+    function sendReaction(key) {
+      fetch(REACT_URL, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": reactCsrf},
+        body: JSON.stringify({emoji: key})
+      }).then(pollReactions).catch(function () {});
+    }
+
+    Object.keys(EMOJI).forEach(function (key) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-outline-secondary fs-4";
+      btn.textContent = EMOJI[key];
+      btn.addEventListener("click", function () { sendReaction(key); });
+      box.appendChild(btn);
+    });
+
+    setInterval(pollReactions, 2000);
+  })();
 </script>
 {% endif %}
 

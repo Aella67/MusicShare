@@ -1,5 +1,8 @@
+import math
+import time
 from functools import wraps
-from flask import Flask, render_template, redirect, url_for, flash, session, abort
+from flask import (Flask, render_template, redirect, url_for, flash, session,
+                   abort, jsonify, request)
 from flask_wtf import CSRFProtect
 import mysql.connector
 from config import Config
@@ -8,6 +11,7 @@ from models.user import User
 from models.playlist import Playlist
 from models.track import Track
 from models.room import Room
+from models.reaction import Reaction, ALLOWED_REACTIONS
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -38,6 +42,19 @@ def viewer_name():
         if user:
             return user.username
     return session.get("guest_name")
+
+
+def youtube_queue(room):
+    """The room's playable songs (YouTube only). The sync index points into this list."""
+    tracks = Track.find_by_playlist(room.playlist_id) if room.playlist_id else []
+    return [{"title": t.title, "source": t.source, "media_id": t.media_id()}
+            for t in tracks if t.source == "youtube"]
+
+
+def can_listen(room):
+    """The host, or anyone with a name (account or guest) in an open room."""
+    is_host = session.get("user_id") == room.host_id
+    return is_host or (room.is_open and viewer_name() is not None)
 
 
 @app.route("/")
@@ -149,11 +166,79 @@ def room_page(code):
         session["guest_name"] = guest_form.display_name.data.strip()
         return redirect(url_for("room_page", code=room.share_code))
     tracks = Track.find_by_playlist(room.playlist_id) if room.playlist_id else []
-    queue = [{"title": t.title, "source": t.source, "media_id": t.media_id()}
-             for t in tracks]
     return render_template("room.html", room=room, is_host=is_host,
                            viewer=viewer_name(), guest_form=guest_form,
-                           tracks=tracks, queue=queue)
+                           tracks=tracks, queue=youtube_queue(room),
+                           state=room.get_state(),
+                           last_reaction_id=Reaction.latest_id(room.id))
+
+
+@app.route("/room/<code>/state", methods=["GET", "POST"])
+def room_state(code):
+    """GET: anyone in the room reads what the host's player is doing.
+    POST: only the host updates it (checked here on the server)."""
+    room = Room.find_by_code(code)
+    if room is None:
+        abort(404)
+    is_host = session.get("user_id") == room.host_id
+
+    if request.method == "GET":
+        if not (is_host or (room.is_open and viewer_name())):
+            abort(403)
+        return jsonify(room.get_state())
+
+    if not is_host:
+        abort(403)
+    data = request.get_json(silent=True) or {}
+    try:
+        index = int(data.get("index"))
+        position = float(data.get("position"))
+    except (TypeError, ValueError):
+        abort(400)
+    playing = bool(data.get("playing"))
+    if not math.isfinite(position) or position < 0 or position > 86400:
+        abort(400)
+    if index < 0 or index >= len(youtube_queue(room)):
+        abort(400)
+    room.save_state(index, position, playing)
+    return jsonify({"ok": True})
+
+
+@app.route("/room/<code>/react", methods=["POST"])
+def room_react(code):
+    """Anyone in the room (host, member or guest) can send one reaction."""
+    room = Room.find_by_code(code)
+    if room is None:
+        abort(404)
+    if not can_listen(room):
+        abort(403)
+    data = request.get_json(silent=True) or {}
+    emoji = data.get("emoji")
+    if not isinstance(emoji, str) or emoji not in ALLOWED_REACTIONS:
+        abort(400)
+    now = time.time()
+    if now - session.get("last_react", 0) < 0.5:   # simple anti-spam: 2 per second max
+        abort(429)
+    session["last_react"] = now
+    Reaction(None, room.id, viewer_name(), emoji).save()
+    return jsonify({"ok": True})
+
+
+@app.route("/room/<code>/reactions")
+def room_reactions(code):
+    """Reactions newer than ?since=<id>, for the page to float up on screen."""
+    room = Room.find_by_code(code)
+    if room is None:
+        abort(404)
+    if not can_listen(room):
+        abort(403)
+    since = request.args.get("since", 0, type=int)
+    items = Reaction.find_since(room.id, since)
+    last_id = items[-1].id if items else since
+    return jsonify({
+        "reactions": [{"id": r.id, "name": r.display_name, "emoji": r.emoji} for r in items],
+        "last_id": last_id,
+    })
 
 
 if __name__ == "__main__":

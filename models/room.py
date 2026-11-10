@@ -59,6 +59,38 @@ class Room:
         finally:
             conn.close()
 
+    def save_state(self, index, position, playing):
+        """Remember what the host's player is doing right now."""
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE rooms SET current_index = %s, position_seconds = %s, "
+                "is_playing = %s, state_updated_at = NOW() WHERE id = %s",
+                (index, position, 1 if playing else 0, self.id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_state(self):
+        """What the host's player is doing, adjusted for time passed since the last update."""
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT current_index, position_seconds, is_playing, "
+                "COALESCE(TIMESTAMPDIFF(SECOND, state_updated_at, NOW()), 0) "
+                "FROM rooms WHERE id = %s",
+                (self.id,),
+            )
+            index, position, playing, elapsed = cur.fetchone()
+        finally:
+            conn.close()
+        if playing:
+            position = position + elapsed  # the song kept playing since the last update
+        return {"index": index, "position": float(position), "playing": bool(playing)}
+
     @classmethod
     def _find(cls, column, value):
         conn = get_connection()
