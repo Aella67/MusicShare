@@ -114,4 +114,17 @@ CREATE TABLE `messages` (
   CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Table structure for table `room_presence`
+--
+
+DROP TABLE IF EXISTS `room_presence`;
+CREATE TABLE `room_presence` (
+  `room_id` int NOT NULL,
+  `display_name` varchar(50) NOT NULL,
+  `last_seen` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`room_id`,`display_name`),
+  CONSTRAINT `room_presence_ibfk_1` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;

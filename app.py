@@ -13,6 +13,7 @@ from models.track import Track
 from models.room import Room
 from models.reaction import Reaction, ALLOWED_REACTIONS
 from models.message import Message, MAX_LENGTH
+from models.presence import Presence
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -133,6 +134,21 @@ def playlist_detail(playlist_id):
     return render_template("playlist.html", playlist=playlist, form=form, tracks=tracks)
 
 
+@app.route("/playlists/<int:playlist_id>/rename", methods=["POST"])
+@login_required
+def rename_playlist(playlist_id):
+    playlist = Playlist.find_by_id(playlist_id)
+    if playlist is None or playlist.user_id != session["user_id"]:
+        abort(404)
+    name = request.form.get("name", "").strip()
+    if not name or len(name) > 100:
+        flash("Playlist name must be 1 to 100 characters.", "danger")
+    else:
+        playlist.rename(name)
+        flash("Playlist renamed.", "success")
+    return redirect(url_for("playlist_detail", playlist_id=playlist.id))
+
+
 @app.route("/playlists/<int:playlist_id>/delete", methods=["POST"])
 @login_required
 def delete_playlist(playlist_id):
@@ -142,6 +158,24 @@ def delete_playlist(playlist_id):
     playlist.delete()
     flash("Playlist deleted.", "info")
     return redirect(url_for("dashboard"))
+
+
+@app.route("/playlists/<int:playlist_id>/tracks/<int:track_id>/rename", methods=["POST"])
+@login_required
+def rename_track(playlist_id, track_id):
+    playlist = Playlist.find_by_id(playlist_id)
+    if playlist is None or playlist.user_id != session["user_id"]:
+        abort(404)
+    track = Track.find_by_id(track_id)
+    if track is None or track.playlist_id != playlist.id:
+        abort(404)
+    title = request.form.get("title", "").strip()
+    if not title or len(title) > 200:
+        flash("Song title must be 1 to 200 characters.", "danger")
+    else:
+        track.rename(title)
+        flash("Song renamed.", "success")
+    return redirect(url_for("playlist_detail", playlist_id=playlist.id))
 
 
 @app.route("/playlists/<int:playlist_id>/tracks/<int:track_id>/delete", methods=["POST"])
@@ -242,6 +276,24 @@ def room_state(code):
         abort(400)
     room.save_state(index, position, playing)
     return jsonify({"ok": True})
+
+
+@app.route("/room/<code>/listeners")
+def room_listeners(code):
+    """Pings the room (so you count as present) and returns who is here right now."""
+    room = Room.find_by_code(code)
+    if room is None:
+        abort(404)
+    if not can_listen(room):
+        abort(403)
+    Presence.touch(room.id, viewer_name())
+    host = User.find_by_id(room.host_id)
+    host_name = host.username if host else None
+    names = Presence.online(room.id)
+    return jsonify({
+        "listeners": [{"name": n, "host": n == host_name} for n in names],
+        "count": len(names),
+    })
 
 
 @app.route("/room/<code>/react", methods=["POST"])

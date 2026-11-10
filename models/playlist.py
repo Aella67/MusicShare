@@ -20,6 +20,16 @@ class Playlist:
         finally:
             conn.close()
 
+    def rename(self, new_name):
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE playlists SET name = %s WHERE id = %s", (new_name, self.id))
+            conn.commit()
+            self.name = new_name
+        finally:
+            conn.close()
+
     def delete(self):
         """Delete the playlist. Its songs are removed too, and rooms using it keep
         existing with no playlist (set by the database foreign keys)."""

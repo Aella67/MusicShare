@@ -42,6 +42,16 @@ class Track:
         finally:
             conn.close()
 
+    def rename(self, new_title):
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE tracks SET title = %s WHERE id = %s", (new_title, self.id))
+            conn.commit()
+            self.title = new_title
+        finally:
+            conn.close()
+
     def delete(self):
         conn = get_connection()
         try:

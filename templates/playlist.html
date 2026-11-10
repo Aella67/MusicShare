@@ -3,14 +3,26 @@
 
 {% block content %}
 <a href="{{ url_for('dashboard') }}" class="text-decoration-none">&larr; Back to dashboard</a>
-<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+<div class="d-flex justify-content-between align-items-start mt-2 mb-4">
   <h1 class="h2 mb-0">{{ playlist.name }}</h1>
-  <form method="post" action="{{ url_for('delete_playlist', playlist_id=playlist.id) }}"
-        class="m-0"
-        onsubmit="return confirm('Delete this playlist and all its songs?');">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-outline-danger btn-sm">Delete playlist</button>
-  </form>
+  <div class="d-flex gap-2 align-items-start">
+    <details>
+      <summary class="btn btn-outline-secondary btn-sm" style="list-style: none; cursor: pointer;">Rename</summary>
+      <form method="post" action="{{ url_for('rename_playlist', playlist_id=playlist.id) }}"
+            class="d-flex gap-2 mt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input name="name" class="form-control form-control-sm" value="{{ playlist.name }}"
+               maxlength="100" required>
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+      </form>
+    </details>
+    <form method="post" action="{{ url_for('delete_playlist', playlist_id=playlist.id) }}"
+          class="m-0"
+          onsubmit="return confirm('Delete this playlist and all its songs?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Delete playlist</button>
+    </form>
+  </div>
 </div>
 
 <div class="card mb-4">
@@ -42,24 +54,37 @@
 {% if tracks %}
   <ul class="list-group">
     {% for t in tracks %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>
-          <span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}
-        </span>
-        <span class="d-flex align-items-center gap-2">
-          <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">
-            {{ t.source }}
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-center">
+          <span>
+            <span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}
           </span>
-          <a href="{{ t.source_url }}" target="_blank" rel="noopener noreferrer"
-             class="small">open</a>
+          <span class="d-flex align-items-center gap-2">
+            <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">
+              {{ t.source }}
+            </span>
+            <a href="{{ t.source_url }}" target="_blank" rel="noopener noreferrer"
+               class="small">open</a>
+            <form method="post"
+                  action="{{ url_for('delete_track', playlist_id=playlist.id, track_id=t.id) }}"
+                  class="m-0"
+                  onsubmit="return confirm('Remove this song from the playlist?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+            </form>
+          </span>
+        </div>
+        <details class="mt-1">
+          <summary class="small text-primary" style="cursor: pointer;">Rename</summary>
           <form method="post"
-                action="{{ url_for('delete_track', playlist_id=playlist.id, track_id=t.id) }}"
-                class="m-0"
-                onsubmit="return confirm('Remove this song from the playlist?');">
+                action="{{ url_for('rename_track', playlist_id=playlist.id, track_id=t.id) }}"
+                class="d-flex gap-2 mt-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+            <input name="title" class="form-control form-control-sm" value="{{ t.title }}"
+                   maxlength="200" required>
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
           </form>
-        </span>
+        </details>
       </li>
     {% endfor %}
   </ul>

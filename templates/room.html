@@ -84,6 +84,16 @@
     100% { transform: translateY(-120px); opacity: 0; }
   }
 </style>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Listening now <span id="listener-count" class="badge bg-secondary">0</span></h2>
+    <div id="listener-list" class="d-flex flex-wrap gap-2">
+      <span class="text-muted small">Checking...</span>
+    </div>
+  </div>
+</div>
+
 <div class="card mb-4">
   <div class="card-body">
     <h2 class="h5 card-title">Reactions</h2>
@@ -277,6 +287,35 @@
 {% endif %}
 
 {% if can_listen %}
+<script>
+  (function () {
+    var LISTENERS_URL = {{ url_for('room_listeners', code=room.share_code)|tojson }};
+    var countEl = document.getElementById("listener-count");
+    var listEl = document.getElementById("listener-list");
+
+    function render(d) {
+      countEl.textContent = d.count;
+      listEl.textContent = "";
+      d.listeners.forEach(function (p) {
+        var chip = document.createElement("span");
+        chip.className = "badge rounded-pill " + (p.host ? "bg-primary" : "bg-light text-dark border");
+        chip.textContent = p.host ? p.name + " (host)" : p.name;   // textContent, so names can't inject HTML
+        listEl.appendChild(chip);
+      });
+    }
+
+    function ping() {
+      fetch(LISTENERS_URL, {credentials: "same-origin"})
+        .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
+        .then(render)
+        .catch(function () {});
+    }
+
+    ping();
+    setInterval(ping, 4000);
+  })();
+</script>
+
 <script>
   (function () {
     var EMOJI = {
