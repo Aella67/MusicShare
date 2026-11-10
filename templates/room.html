@@ -2,6 +2,8 @@
 {% block title %}{{ room.name }} - MusicShare{% endblock %}
 
 {% block content %}
+{% set can_listen = is_host or (room.is_open and viewer) %}
+
 <h1 class="h2 mb-1">{{ room.name }}</h1>
 {% if not room.is_open %}<span class="badge bg-secondary">Closed</span>{% endif %}
 
@@ -25,7 +27,7 @@
 {% elif not room.is_open %}
   <div class="alert alert-secondary my-4">This room is closed.</div>
 {% elif viewer %}
-  <p class="text-muted my-4">You're listening as <strong>{{ viewer }}</strong>. Playback is coming soon.</p>
+  <p class="text-muted my-4">You're listening as <strong>{{ viewer }}</strong>.</p>
 {% else %}
   <div class="card my-4">
     <div class="card-body">
@@ -49,6 +51,17 @@
   </div>
 {% endif %}
 
+{% if can_listen and tracks %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h2 class="h5 card-title">Now playing</h2>
+      <p id="now-playing" class="text-muted">Loading...</p>
+      <div class="ratio ratio-16x9 mb-3"><div id="player"></div></div>
+      <button id="btn-next" class="btn btn-outline-secondary btn-sm" type="button">Next song</button>
+    </div>
+  </div>
+{% endif %}
+
 <h2 class="h5">Songs ({{ tracks|length }})</h2>
 {% if tracks %}
   <ul class="list-group">
@@ -61,6 +74,45 @@
   </ul>
 {% else %}
   <p class="text-muted">No songs yet.</p>
+{% endif %}
+
+{% if can_listen and tracks %}
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+  var queue = {{ queue|tojson }}.filter(function (t) { return t.source === "youtube"; });
+  var index = 0;
+  var player;
+
+  function showTitle() {
+    var label = document.getElementById("now-playing");
+    if (label) label.textContent = (index + 1) + ". " + queue[index].title;
+  }
+
+  function playIndex(i) {
+    index = i % queue.length;
+    player.loadVideoById(queue[index].media_id);
+    showTitle();
+  }
+
+  function onYouTubeIframeAPIReady() {
+    if (queue.length === 0) {
+      document.getElementById("now-playing").textContent = "No YouTube songs to play yet.";
+      return;
+    }
+    player = new YT.Player("player", {
+      videoId: queue[0].media_id,
+      events: {
+        onReady: showTitle,
+        onStateChange: function (e) {
+          if (e.data === YT.PlayerState.ENDED) playIndex(index + 1);
+        }
+      }
+    });
+    document.getElementById("btn-next").addEventListener("click", function () {
+      playIndex(index + 1);
+    });
+  }
+</script>
 {% endif %}
 
 <script>

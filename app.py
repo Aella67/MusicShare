@@ -29,6 +29,7 @@ def inject_current_user():
     user_id = session.get("user_id")
     return {"current_user": User.find_by_id(user_id) if user_id else None}
 
+
 def viewer_name():
     """Who is looking at the page: a username, a guest's display name, or None."""
     user_id = session.get("user_id")
@@ -83,6 +84,7 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for("home"))
 
+
 @app.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
@@ -92,9 +94,10 @@ def dashboard():
         playlist.save()
         flash("Playlist created!", "success")
         return redirect(url_for("dashboard"))
-        playlists = Playlist.find_by_user(session["user_id"])
+    playlists = Playlist.find_by_user(session["user_id"])
     rooms = Room.find_by_host(session["user_id"])
     return render_template("dashboard.html", form=form, playlists=playlists, rooms=rooms)
+
 
 @app.route("/playlists/<int:playlist_id>", methods=["GET", "POST"])
 @login_required
@@ -110,6 +113,7 @@ def playlist_detail(playlist_id):
         return redirect(url_for("playlist_detail", playlist_id=playlist.id))
     tracks = Track.find_by_playlist(playlist.id)
     return render_template("playlist.html", playlist=playlist, form=form, tracks=tracks)
+
 
 @app.route("/rooms/new", methods=["GET", "POST"])
 @login_required
@@ -145,8 +149,12 @@ def room_page(code):
         session["guest_name"] = guest_form.display_name.data.strip()
         return redirect(url_for("room_page", code=room.share_code))
     tracks = Track.find_by_playlist(room.playlist_id) if room.playlist_id else []
+    queue = [{"title": t.title, "source": t.source, "media_id": t.media_id()}
+             for t in tracks]
     return render_template("room.html", room=room, is_host=is_host,
-                           viewer=viewer_name(), guest_form=guest_form, tracks=tracks)
+                           viewer=viewer_name(), guest_form=guest_form,
+                           tracks=tracks, queue=queue)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
