@@ -3,7 +3,7 @@ from flask import Flask, render_template, redirect, url_for, flash, session, abo
 from flask_wtf import CSRFProtect
 import mysql.connector
 from config import Config
-from forms import RegisterForm, LoginForm, PlaylistForm, TrackForm, RoomForm
+from forms import RegisterForm, LoginForm, PlaylistForm, TrackForm, RoomForm, JoinForm, GuestForm
 from models.user import User
 from models.playlist import Playlist
 from models.track import Track
@@ -28,6 +28,15 @@ def login_required(view):
 def inject_current_user():
     user_id = session.get("user_id")
     return {"current_user": User.find_by_id(user_id) if user_id else None}
+
+def viewer_name():
+    """Who is looking at the page: a username, a guest's display name, or None."""
+    user_id = session.get("user_id")
+    if user_id:
+        user = User.find_by_id(user_id)
+        if user:
+            return user.username
+    return session.get("guest_name")
 
 
 @app.route("/")
@@ -83,8 +92,9 @@ def dashboard():
         playlist.save()
         flash("Playlist created!", "success")
         return redirect(url_for("dashboard"))
-    playlists = Playlist.find_by_user(session["user_id"])
-    return render_template("dashboard.html", form=form, playlists=playlists)
+        playlists = Playlist.find_by_user(session["user_id"])
+    rooms = Room.find_by_host(session["user_id"])
+    return render_template("dashboard.html", form=form, playlists=playlists, rooms=rooms)
 
 @app.route("/playlists/<int:playlist_id>", methods=["GET", "POST"])
 @login_required
@@ -116,15 +126,27 @@ def new_room():
     return render_template("new_room.html", form=form)
 
 
-@app.route("/room/<code>")
+@app.route("/join", methods=["GET", "POST"])
+def join():
+    form = JoinForm()
+    if form.validate_on_submit():
+        return redirect(url_for("room_page", code=form.code.data.strip().upper()))
+    return render_template("join.html", form=form)
+
+
+@app.route("/room/<code>", methods=["GET", "POST"])
 def room_page(code):
     room = Room.find_by_code(code)
     if room is None:
         abort(404)
     is_host = session.get("user_id") == room.host_id
+    guest_form = GuestForm()
+    if guest_form.validate_on_submit():
+        session["guest_name"] = guest_form.display_name.data.strip()
+        return redirect(url_for("room_page", code=room.share_code))
     tracks = Track.find_by_playlist(room.playlist_id) if room.playlist_id else []
-    return render_template("room.html", room=room, is_host=is_host, tracks=tracks)
-
+    return render_template("room.html", room=room, is_host=is_host,
+                           viewer=viewer_name(), guest_form=guest_form, tracks=tracks)
 
 if __name__ == "__main__":
     app.run(debug=True)

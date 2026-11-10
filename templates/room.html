@@ -22,8 +22,31 @@
       </div>
     </div>
   </div>
+{% elif not room.is_open %}
+  <div class="alert alert-secondary my-4">This room is closed.</div>
+{% elif viewer %}
+  <p class="text-muted my-4">You're listening as <strong>{{ viewer }}</strong>. Playback is coming soon.</p>
 {% else %}
-  <p class="text-muted my-4">Joining as a listener is coming soon.</p>
+  <div class="card my-4">
+    <div class="card-body">
+      <h2 class="h5 card-title">Join as a guest</h2>
+      <form method="post" novalidate>
+        {{ guest_form.hidden_tag() }}
+        <div class="mb-3">
+          {{ guest_form.display_name.label(class="form-label") }}
+          {{ guest_form.display_name(class="form-control" ~ (" is-invalid" if guest_form.display_name.errors else ""),
+                                     placeholder="What should we call you?") }}
+          {% for error in guest_form.display_name.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Join room</button>
+      </form>
+      <p class="small text-muted mt-3 mb-0">
+        Have an account? <a href="{{ url_for('login') }}">Log in</a> to use your username.
+      </p>
+    </div>
+  </div>
 {% endif %}
 
 <h2 class="h5">Songs ({{ tracks|length }})</h2>

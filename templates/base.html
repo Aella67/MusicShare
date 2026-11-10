@@ -11,6 +11,9 @@
     <div class="container">
       <a class="navbar-brand" href="{{ url_for('home') }}">🎵 MusicShare</a>
             <ul class="navbar-nav ms-auto align-items-center">
+                      <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('join') }}">Join a room</a>
+        </li>
         {% if current_user %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'dashboard' %}active fw-semibold{% endif %}"

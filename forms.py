@@ -3,6 +3,7 @@ from wtforms import StringField, PasswordField, EmailField, SelectField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp, ValidationError
 from models.user import User
 from models.track import Track
+from models.room import Room
 
 
 class RegisterForm(FlaskForm):
@@ -46,3 +47,18 @@ class TrackForm(FlaskForm):
 class RoomForm(FlaskForm):
     name = StringField("Room name", validators=[DataRequired(), Length(max=100)])
     playlist_id = SelectField("Playlist", coerce=int)
+
+
+class JoinForm(FlaskForm):
+    code = StringField("Room code", validators=[DataRequired(), Length(max=8)])
+
+    def validate_code(self, field):
+        room = Room.find_by_code(field.data)
+        if room is None:
+            raise ValidationError("No room with that code.")
+        if not room.is_open:
+            raise ValidationError("That room is closed.")
+
+
+class GuestForm(FlaskForm):
+    display_name = StringField("Display name", validators=[DataRequired(), Length(min=2, max=30)])

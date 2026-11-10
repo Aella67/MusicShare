@@ -39,8 +39,26 @@
   <div class="col-md-6">
     <div class="card h-100">
       <div class="card-body">
-        <h2 class="h5 card-title">My rooms</h2>
-        <p class="card-text text-muted">Create a room and share its link or code. Coming soon.</p>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 card-title mb-0">My rooms</h2>
+          <a href="{{ url_for('new_room') }}" class="btn btn-primary btn-sm">Create room</a>
+        </div>
+        {% if rooms %}
+          <ul class="list-group">
+            {% for r in rooms %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('room_page', code=r.share_code) }}"
+                   class="text-decoration-none">{{ r.name }}</a>
+                <span>
+                  <code>{{ r.share_code }}</code>
+                  {% if not r.is_open %}<span class="badge bg-secondary ms-1">closed</span>{% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">No rooms yet. Create one to start listening together.</p>
+        {% endif %}   
       </div>
     </div>
   </div>
