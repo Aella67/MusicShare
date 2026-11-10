@@ -59,6 +59,7 @@
       <div class="ratio ratio-16x9 mb-3"><div id="player"></div></div>
       <p id="player-note" class="small text-warning-emphasis mb-2"></p>
       {% if is_host %}
+        <button id="btn-prev" class="btn btn-outline-secondary btn-sm" type="button">Previous</button>
         <button id="btn-next" class="btn btn-outline-secondary btn-sm" type="button">Next song</button>
         <span class="small text-muted ms-2">Listeners follow your player.</span>
       {% else %}
@@ -118,11 +119,28 @@
 
 <h2 class="h5">Songs ({{ tracks|length }})</h2>
 {% if tracks %}
+  {% set ns = namespace(i=0) %}
   <ul class="list-group">
     {% for t in tracks %}
-      <li class="list-group-item d-flex justify-content-between">
+      {% if t.source == 'youtube' %}
+        {% set song_index = ns.i %}
+        {% set ns.i = ns.i + 1 %}
+      {% else %}
+        {% set song_index = none %}
+      {% endif %}
+      <li class="list-group-item d-flex justify-content-between align-items-center"
+          {% if song_index is not none %}data-song-index="{{ song_index }}"{% endif %}>
         <span><span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}</span>
-        <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">{{ t.source }}</span>
+        <span class="d-flex align-items-center gap-2">
+          {% if song_index is none %}
+            <span class="text-muted small">not playable yet</span>
+          {% endif %}
+          <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">{{ t.source }}</span>
+          {% if is_host and song_index is not none %}
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-play-index="{{ song_index }}">Play</button>
+          {% endif %}
+        </span>
       </li>
     {% endfor %}
   </ul>
@@ -149,8 +167,18 @@
     if (el) el.textContent = text;
   }
 
+  // Highlight the song that is playing in the Songs list
+  function highlightCurrent() {
+    document.querySelectorAll("[data-song-index]").forEach(function (li) {
+      var current = Number(li.dataset.songIndex) === index;
+      li.classList.toggle("bg-primary-subtle", current);
+      li.classList.toggle("fw-semibold", current);
+    });
+  }
+
   function showTitle() {
     setText("now-playing", (index + 1) + ". " + queue[index].title);
+    highlightCurrent();
   }
 
   // ---------- host: send my player's state to the server ----------
@@ -172,7 +200,7 @@
   }
 
   function hostPlayIndex(i) {
-    index = i % queue.length;
+    index = ((i % queue.length) + queue.length) % queue.length;   // wraps around, also going backwards
     player.loadVideoById(queue[index].media_id);
     showTitle();
     pushState({index: index, position: 0, playing: true});
@@ -272,6 +300,16 @@
     if (isHost) {
       document.getElementById("btn-next").addEventListener("click", function () {
         hostPlayIndex(index + 1);
+      });
+      document.getElementById("btn-prev").addEventListener("click", function () {
+        // Like most music apps: past 3 seconds restarts the song, otherwise go back one
+        if (player.getCurrentTime() > 3) hostPlayIndex(index);
+        else hostPlayIndex(index - 1);
+      });
+      document.querySelectorAll("[data-play-index]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          hostPlayIndex(Number(btn.dataset.playIndex));
+        });
       });
     } else {
       // A click is needed once, because browsers block sound until the page is clicked.
