@@ -1,97 +1,95 @@
 {% extends "base.html" %}
+{% set layout = 'app' %}
 {% block title %}{{ playlist.name }} - MusicShare{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('dashboard') }}" class="text-decoration-none">&larr; Back to dashboard</a>
-<div class="d-flex justify-content-between align-items-start mt-2 mb-4">
-  <h1 class="h2 mb-0">{{ playlist.name }}</h1>
-  <div class="d-flex gap-2 align-items-start">
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <span class="ms-cover lg c1" aria-hidden="true"></span>
+    <div>
+      <span class="ms-eyebrow">Playlist</span>
+      <h1 class="h2 mb-0">{{ playlist.name }}</h1>
+      <small>{{ tracks|length }} song{{ '' if tracks|length == 1 else 's' }}</small>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-start">
     <details>
-      <summary class="btn btn-outline-secondary btn-sm" style="list-style: none; cursor: pointer;">Rename</summary>
-      <form method="post" action="{{ url_for('rename_playlist', playlist_id=playlist.id) }}"
-            class="d-flex gap-2 mt-2">
+      <summary class="btn btn-outline-secondary" style="list-style: none; cursor: pointer;">Rename</summary>
+      <form method="post" action="{{ url_for('rename_playlist', playlist_id=playlist.id) }}" class="d-flex gap-2 mt-2">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input name="name" class="form-control form-control-sm" value="{{ playlist.name }}"
                maxlength="100" required aria-label="New playlist name">
         <button type="submit" class="btn btn-primary btn-sm">Save</button>
       </form>
     </details>
-    <form method="post" action="{{ url_for('delete_playlist', playlist_id=playlist.id) }}"
-          class="m-0"
+    <form method="post" action="{{ url_for('delete_playlist', playlist_id=playlist.id) }}" class="m-0"
           onsubmit="return confirm('Delete this playlist and all its songs?');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn btn-outline-danger btn-sm">Delete playlist</button>
+      <button type="submit" class="btn btn-outline-danger">Delete</button>
     </form>
+    <a href="{{ url_for('new_room') }}" class="btn btn-primary">Start a room</a>
   </div>
 </div>
 
 <div class="card mb-4">
   <div class="card-body">
-    <h2 class="h5 card-title">Add a song</h2>
-    <form method="post">
+    <form method="post" class="row g-3 align-items-start">
       {{ form.hidden_tag() }}
-      <div class="mb-3">
+      <div class="col-lg-5">
         {{ form.url.label(class="form-label") }}
         {{ form.url(class="form-control" ~ (" is-invalid" if form.url.errors else ""),
-                    placeholder="https://www.youtube.com/watch?v=... or a SoundCloud link",
-                    required=True, maxlength=500) }}
-        <div class="form-text">Paste a YouTube video or SoundCloud link.</div>
-        {% for error in form.url.errors %}
-          <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
+                    placeholder="https://", required=True, maxlength=500) }}
+        {% for error in form.url.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
       </div>
-      <div class="mb-3">
+      <div class="col-lg-4">
         {{ form.title.label(class="form-label") }}
         {{ form.title(class="form-control" ~ (" is-invalid" if form.title.errors else ""),
-                      required=True, maxlength=200) }}
-        {% for error in form.title.errors %}
-          <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
+                      placeholder="Name it", required=True, maxlength=200) }}
+        {% for error in form.title.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
       </div>
-      <button type="submit" class="btn btn-primary">Add song</button>
+      <div class="col-lg-3 pt-lg-4 mt-lg-2">
+        <button type="submit" class="btn btn-gold w-100">Add song</button>
+      </div>
+      <div class="col-12 form-text mt-0">Paste a YouTube video or SoundCloud link.</div>
     </form>
   </div>
 </div>
 
-<h2 class="h5">Songs ({{ tracks|length }})</h2>
-{% if tracks %}
-  <ul class="list-group">
-    {% for t in tracks %}
-      <li class="list-group-item">
-        <div class="d-flex justify-content-between align-items-center">
-          <span>
-            <span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}
-          </span>
-          <span class="d-flex align-items-center gap-2">
-            <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">
-              {{ t.source }}
-            </span>
-            <a href="{{ t.source_url }}" target="_blank" rel="noopener noreferrer"
-               class="small">open</a>
-            <form method="post"
-                  action="{{ url_for('delete_track', playlist_id=playlist.id, track_id=t.id) }}"
-                  class="m-0"
-                  onsubmit="return confirm('Remove this song from the playlist?');">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
-            </form>
-          </span>
-        </div>
-        <details class="mt-1">
-          <summary class="small text-primary" style="cursor: pointer;">Rename</summary>
-          <form method="post"
-                action="{{ url_for('rename_track', playlist_id=playlist.id, track_id=t.id) }}"
-                class="d-flex gap-2 mt-2">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input name="title" class="form-control form-control-sm" value="{{ t.title }}"
-                   maxlength="200" required aria-label="New song title">
-            <button type="submit" class="btn btn-primary btn-sm">Save</button>
-          </form>
-        </details>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p class="text-muted">No songs yet. Paste a link above to add your first one.</p>
-{% endif %}
+<div class="card">
+  <div class="card-body">
+    <span class="ms-label">Songs</span>
+    {% if tracks %}
+      <ul class="list-group">
+        {% for t in tracks %}
+          <li class="list-group-item">
+            <div class="d-flex align-items-center gap-3">
+              <span class="ms-cover c{{ (loop.index0 % 4) + 1 }}" aria-hidden="true"></span>
+              <div class="flex-grow-1" style="min-width: 0;">
+                <div class="ms-title text-truncate">{{ t.title }}</div>
+                <small>Added by you &middot; <a href="{{ t.source_url }}" target="_blank" rel="noopener noreferrer">open</a></small>
+              </div>
+              <span class="badge {{ 'bg-warning text-dark' if t.source == 'youtube' else 'bg-light text-dark' }}">{{ t.source|upper }}</span>
+              <form method="post" action="{{ url_for('delete_track', playlist_id=playlist.id, track_id=t.id) }}" class="m-0"
+                    onsubmit="return confirm('Remove this song from the playlist?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+              </form>
+            </div>
+            <details class="mt-1 ms-5 ps-3">
+              <summary class="small" style="cursor: pointer; color: var(--ms-kikyo);">Rename</summary>
+              <form method="post" action="{{ url_for('rename_track', playlist_id=playlist.id, track_id=t.id) }}" class="d-flex gap-2 mt-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input name="title" class="form-control form-control-sm" value="{{ t.title }}"
+                       maxlength="200" required aria-label="New song title">
+                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+              </form>
+            </details>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted mb-0">No songs yet. Paste a link above to add your first one.</p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

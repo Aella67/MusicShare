@@ -1,120 +1,148 @@
 {% extends "base.html" %}
+{% set layout = 'app' %}
 {% block title %}Profile - MusicShare{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-4">Your profile</h1>
+<style>
+  .player-card { background: linear-gradient(135deg, #3A1F3C, #4E2F55); color: #F3EFF8; border-radius: 24px; padding: 1.5rem;
+                 box-shadow: 0 8px 0 rgba(58, 31, 60, .25), 0 18px 32px rgba(58, 31, 60, .22); }
+  .ms-photo-tile { width: 150px; height: 150px; border-radius: 28px; flex: none; overflow: hidden; position: relative;
+                   background: linear-gradient(135deg, #A393B6, #604268); display: grid; place-items: center;
+                   font-size: 4rem; font-weight: 700; color: #F5F2F9; box-shadow: 0 10px 20px rgba(0, 0, 0, .3); }
+  .ms-photo-tile img { width: 100%; height: 100%; object-fit: cover; }
+  .ms-photo-tile::after { content: ""; position: absolute; right: -22px; bottom: -22px; width: 70px; height: 70px; border-radius: 50%;
+                          background: radial-gradient(circle, #856A93 0 20%, #2A2230 22%); }
+  .player-card .kicker { font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; font-weight: 700; color: #C4BED2; }
+  .player-card .sub { color: #DCD5E8; font-size: .9rem; }
+  .ms-bar { height: 6px; border-radius: 999px; background: rgba(243, 239, 248, .25); overflow: hidden; }
+  .ms-bar > div { height: 100%; width: 0; background: var(--ms-gold); border-radius: 999px; transition: width .2s; }
+  .btn-ghost-light { background: rgba(243, 239, 248, .16); color: #F3EFF8; border: 0; }
+  .btn-ghost-light:hover { background: rgba(243, 239, 248, .28); color: #fff; }
+  .player-card .btn-outline-danger { --bs-btn-color: #F6DADA; --bs-btn-border-color: #D9A3A8; }
+</style>
 
-<div class="row g-4">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <h2 class="h5 mb-3">Profile photo</h2>
-        <div class="d-flex flex-wrap align-items-center gap-4">
-          {% if current_user.photo %}
-            <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.photo) }}"
-                 alt="Your profile photo" width="110" height="110"
-                 class="rounded-circle border" style="object-fit: cover;">
-          {% else %}
-            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fs-1"
-                 style="width: 110px; height: 110px;" aria-label="No profile photo">
-              {{ current_user.username[0]|upper }}
-            </div>
-          {% endif %}
+<span class="ms-eyebrow">Account</span>
+<h1 class="h2 mb-4">Your profile</h1>
 
-          <div>
-            <form method="post" action="{{ url_for('profile_photo') }}" enctype="multipart/form-data"
-                  class="d-flex flex-wrap align-items-end gap-2">
-              {{ photo_form.hidden_tag() }}
-              <div>
-                {{ photo_form.photo.label(class="form-label") }}
-                {{ photo_form.photo(class="form-control", accept=".jpg,.jpeg,.png,image/jpeg,image/png", required=True) }}
-                <div class="form-text">JPG or PNG, up to 2 MB.</div>
-              </div>
-              <button type="submit" class="btn btn-primary">Upload photo</button>
-            </form>
+<div class="player-card mb-4">
+  <div class="d-flex flex-wrap align-items-center gap-4">
+    <div class="ms-photo-tile">
+      {% if current_user.photo %}
+        <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.photo) }}" alt="Your profile photo">
+      {% else %}
+        <span aria-label="No profile photo">{{ current_user.username[0]|upper }}</span>
+      {% endif %}
+    </div>
 
-            {% if current_user.photo %}
-              <form method="post" action="{{ url_for('profile_photo_remove') }}" class="mt-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-outline-danger btn-sm">Remove photo</button>
-              </form>
-            {% endif %}
+    <div class="flex-grow-1" style="min-width: 240px;">
+      <div class="kicker">Now showing</div>
+      <h2 class="h3 mb-0">Profile photo</h2>
+      <div class="sub mb-3">JPG or PNG, up to 2 MB</div>
+
+      <form method="post" action="{{ url_for('profile_photo') }}" enctype="multipart/form-data" id="photo-form">
+        {{ photo_form.hidden_tag() }}
+        {{ photo_form.photo(class="visually-hidden", accept=".jpg,.jpeg,.png,image/jpeg,image/png", required=True) }}
+
+        <div id="photo-meter" class="mb-3" hidden>
+          <div class="ms-bar"><div id="photo-fill"></div></div>
+          <div class="d-flex justify-content-between sub mt-1">
+            <span id="photo-size">0 MB selected</span><span>2 MB max</span>
           </div>
         </div>
-      </div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <label for="{{ photo_form.photo.id }}" class="btn btn-ghost-light mb-0">Choose file</label>
+          <button type="submit" class="btn btn-gold">Upload photo</button>
+          {% if current_user.photo %}
+            <button type="submit" form="photo-remove" class="btn btn-outline-danger">Remove photo</button>
+          {% endif %}
+        </div>
+        {% for error in photo_form.photo.errors %}
+          <div class="small mt-2" style="color:#F6DADA;">{{ error }}</div>
+        {% endfor %}
+      </form>
+
+      {% if current_user.photo %}
+        <form method="post" action="{{ url_for('profile_photo_remove') }}" id="photo-remove">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+      {% endif %}
     </div>
   </div>
+</div>
 
-  <div class="col-md-6">
-    <div class="card">
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
       <div class="card-body">
-        <h2 class="h5 mb-3">Account details</h2>
+        <span class="ms-label">Account details</span>
         <form method="post" action="{{ url_for('profile') }}">
           {{ form.hidden_tag() }}
-
           <div class="mb-3">
             {{ form.username.label(class="form-label") }}
             {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""),
                              minlength=3, maxlength=50, required=True, autocomplete="username") }}
-            {% for error in form.username.errors %}
-              <div class="invalid-feedback">{{ error }}</div>
-            {% endfor %}
+            {% for error in form.username.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
           </div>
-
           <div class="mb-3">
             {{ form.email.label(class="form-label") }}
             {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
                           maxlength=120, required=True, autocomplete="email") }}
-            {% for error in form.email.errors %}
-              <div class="invalid-feedback">{{ error }}</div>
-            {% endfor %}
+            {% for error in form.email.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
           </div>
-
           <button type="submit" class="btn btn-primary">Save changes</button>
         </form>
       </div>
     </div>
   </div>
 
-  <div class="col-md-6">
-    <div class="card">
+  <div class="col-lg-6">
+    <div class="card h-100">
       <div class="card-body">
-        <h2 class="h5 mb-3">Change password</h2>
+        <span class="ms-label">Change password</span>
         <form method="post" action="{{ url_for('profile_password') }}">
           {{ password_form.hidden_tag() }}
-
           <div class="mb-3">
             {{ password_form.current_password.label(class="form-label") }}
             {{ password_form.current_password(class="form-control" + (" is-invalid" if password_form.current_password.errors else ""),
                                               required=True, autocomplete="current-password") }}
-            {% for error in password_form.current_password.errors %}
-              <div class="invalid-feedback">{{ error }}</div>
-            {% endfor %}
+            {% for error in password_form.current_password.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
           </div>
-
           <div class="mb-3">
             {{ password_form.new_password.label(class="form-label") }}
             {{ password_form.new_password(class="form-control" + (" is-invalid" if password_form.new_password.errors else ""),
                                           minlength=8, maxlength=128, required=True, autocomplete="new-password") }}
             <div class="form-text">At least 8 characters.</div>
-            {% for error in password_form.new_password.errors %}
-              <div class="invalid-feedback">{{ error }}</div>
-            {% endfor %}
+            {% for error in password_form.new_password.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
           </div>
-
           <div class="mb-3">
             {{ password_form.confirm_password.label(class="form-label") }}
             {{ password_form.confirm_password(class="form-control" + (" is-invalid" if password_form.confirm_password.errors else ""),
                                               minlength=8, maxlength=128, required=True, autocomplete="new-password") }}
-            {% for error in password_form.confirm_password.errors %}
-              <div class="invalid-feedback">{{ error }}</div>
-            {% endfor %}
+            {% for error in password_form.confirm_password.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
           </div>
-
           <button type="submit" class="btn btn-primary">Update password</button>
         </form>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    var input = document.getElementById({{ photo_form.photo.id|tojson }});
+    var meter = document.getElementById("photo-meter");
+    var fill = document.getElementById("photo-fill");
+    var label = document.getElementById("photo-size");
+    if (!input) return;
+    input.addEventListener("change", function () {
+      var f = input.files[0];
+      if (!f) { meter.hidden = true; return; }
+      var mb = f.size / 1048576;
+      meter.hidden = false;
+      fill.style.width = Math.min(100, mb / 2 * 100) + "%";
+      label.textContent = mb.toFixed(1) + " MB selected" + (mb > 2 ? " (too large, max 2 MB)" : "");
+    });
+  })();
+</script>
 {% endblock %}

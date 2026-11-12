@@ -1,21 +1,65 @@
 {% extends "base.html" %}
+{% set layout = 'app' %}
 {% block title %}Dashboard - MusicShare{% endblock %}
 
 {% block content %}
-<h1 class="h2 mb-4">Welcome, {{ current_user.username }}!</h1>
+{% set live = rooms|selectattr('is_open')|list|length %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+  <div>
+    <span class="ms-eyebrow">Dashboard</span>
+    <h1 class="h2 mb-0">Welcome back, {{ current_user.username }}</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="#new-playlist" class="btn btn-outline-secondary">New playlist</a>
+    <a href="{{ url_for('new_room') }}" class="btn btn-primary">Create a room</a>
+  </div>
+</div>
 
 <div class="row g-4">
-  <div class="col-md-6">
+  <div class="col-xl-7" id="rooms">
     <div class="card h-100">
       <div class="card-body">
-        <h2 class="h5 card-title">My playlists</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="ms-label mb-0">Your rooms</span>
+          {% if live %}<span class="ms-live">{{ live }} LIVE</span>{% endif %}
+        </div>
+        {% if rooms %}
+          <ul class="list-group">
+            {% for r in rooms %}
+              <li class="list-group-item d-flex align-items-center gap-3">
+                <span class="ms-disc" aria-hidden="true"></span>
+                <div class="flex-grow-1" style="min-width: 0;">
+                  <a href="{{ url_for('room_page', code=r.share_code) }}" class="text-decoration-none ms-title d-block text-truncate">{{ r.name }}</a>
+                  <small>Code {{ r.share_code }} &middot; {{ 'Open' if r.is_open else 'Closed' }}</small>
+                </div>
+                <a href="{{ url_for('room_page', code=r.share_code) }}" class="btn btn-primary btn-sm">Open</a>
+                <form method="post" action="{{ url_for('delete_room', code=r.share_code) }}" class="m-0"
+                      onsubmit="return confirm('Delete this room? Its chat and reactions will be removed.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">No rooms yet. Create one to start listening together.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
-        <form method="post" class="d-flex gap-2 mb-3">
+  <div class="col-xl-5" id="playlists">
+    <div class="card h-100">
+      <div class="card-body">
+        <span class="ms-label">Your playlists</span>
+
+        <form method="post" class="d-flex gap-2 mb-3" id="new-playlist">
           {{ form.hidden_tag() }}
           <label for="{{ form.name.id }}" class="visually-hidden">Playlist name</label>
           {{ form.name(class="form-control" ~ (" is-invalid" if form.name.errors else ""),
                        placeholder="New playlist name", required=True, maxlength=100) }}
-          <button type="submit" class="btn btn-primary">Create</button>
+          <button type="submit" class="btn btn-gold">Create</button>
         </form>
         {% for error in form.name.errors %}
           <div class="text-danger small mb-2">{{ error }}</div>
@@ -24,11 +68,11 @@
         {% if playlists %}
           <ul class="list-group">
             {% for p in playlists %}
-              <li class="list-group-item d-flex justify-content-between align-items-center">
+              <li class="list-group-item d-flex align-items-center gap-3">
+                <span class="ms-cover c{{ (loop.index0 % 4) + 1 }}" aria-hidden="true"></span>
                 <a href="{{ url_for('playlist_detail', playlist_id=p.id) }}"
-                   class="text-decoration-none">{{ p.name }}</a>
-                <form method="post" action="{{ url_for('delete_playlist', playlist_id=p.id) }}"
-                      class="m-0"
+                   class="text-decoration-none ms-title flex-grow-1 text-truncate">{{ p.name }}</a>
+                <form method="post" action="{{ url_for('delete_playlist', playlist_id=p.id) }}" class="m-0"
                       onsubmit="return confirm('Delete this playlist and all its songs?');">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
@@ -38,39 +82,6 @@
           </ul>
         {% else %}
           <p class="text-muted mb-0">No playlists yet. Create your first one above.</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6">
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="h5 card-title mb-0">My rooms</h2>
-          <a href="{{ url_for('new_room') }}" class="btn btn-primary btn-sm">Create room</a>
-        </div>
-        {% if rooms %}
-          <ul class="list-group">
-            {% for r in rooms %}
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <a href="{{ url_for('room_page', code=r.share_code) }}"
-                   class="text-decoration-none">{{ r.name }}</a>
-                <span class="d-flex align-items-center gap-2">
-                  <code>{{ r.share_code }}</code>
-                  {% if not r.is_open %}<span class="badge bg-secondary">closed</span>{% endif %}
-                  <form method="post" action="{{ url_for('delete_room', code=r.share_code) }}"
-                        class="m-0"
-                        onsubmit="return confirm('Delete this room? Its chat and reactions will be removed.');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
-                  </form>
-                </span>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="text-muted mb-0">No rooms yet. Create one to start listening together.</p>
         {% endif %}
       </div>
     </div>
