@@ -30,6 +30,35 @@ class User:
         finally:
             conn.close()
 
+    def update_profile(self, username, email):
+        """Changes the username and email. Raises IntegrityError if either is taken."""
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET username = %s, email = %s WHERE id = %s",
+                (username, email, self.id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        self.username = username
+        self.email = email
+
+    def update_password(self, new_password):
+        """Hashes the new password and saves it."""
+        self.set_password(new_password)
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET password_hash = %s WHERE id = %s",
+                (self.__password_hash, self.id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
     @classmethod
     def _find(cls, column, value):
         conn = get_connection()

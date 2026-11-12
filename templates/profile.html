@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Profile - MusicShare{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Your profile</h1>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Account details</h2>
+        <form method="post" action="{{ url_for('profile') }}">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""),
+                             minlength=3, maxlength=50, required=True, autocomplete="username") }}
+            {% for error in form.username.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
+                          maxlength=120, required=True, autocomplete="email") }}
+            {% for error in form.email.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-primary">Save changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Change password</h2>
+        <form method="post" action="{{ url_for('profile_password') }}">
+          {{ password_form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ password_form.current_password.label(class="form-label") }}
+            {{ password_form.current_password(class="form-control" + (" is-invalid" if password_form.current_password.errors else ""),
+                                              required=True, autocomplete="current-password") }}
+            {% for error in password_form.current_password.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ password_form.new_password.label(class="form-label") }}
+            {{ password_form.new_password(class="form-control" + (" is-invalid" if password_form.new_password.errors else ""),
+                                          minlength=8, maxlength=128, required=True, autocomplete="new-password") }}
+            <div class="form-text">At least 8 characters.</div>
+            {% for error in password_form.new_password.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ password_form.confirm_password.label(class="form-label") }}
+            {{ password_form.confirm_password(class="form-control" + (" is-invalid" if password_form.confirm_password.errors else ""),
+                                              minlength=8, maxlength=128, required=True, autocomplete="new-password") }}
+            {% for error in password_form.confirm_password.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-primary">Update password</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

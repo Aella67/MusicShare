@@ -31,6 +31,46 @@ class LoginForm(FlaskForm):
     password = PasswordField("Password", validators=[DataRequired()])
 
 
+class ProfileForm(FlaskForm):
+    """Update name and email. original_user is the logged-in user, so their
+    own current username/email do not count as 'already taken'."""
+    username = StringField("Username", validators=[
+        DataRequired(), Length(min=3, max=50),
+        Regexp(r"^[A-Za-z0-9_]+$", message="Use letters, numbers, and underscores only."),
+    ])
+    email = EmailField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+
+    def __init__(self, original_user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_user = original_user
+
+    def validate_username(self, field):
+        other = User.find_by_username(field.data.strip())
+        if other and other.id != self.original_user.id:
+            raise ValidationError("That username is already taken.")
+
+    def validate_email(self, field):
+        other = User.find_by_email(field.data.strip().lower())
+        if other and other.id != self.original_user.id:
+            raise ValidationError("An account with that email already exists.")
+
+
+class ChangePasswordForm(FlaskForm):
+    current_password = PasswordField("Current password", validators=[DataRequired()])
+    new_password = PasswordField("New password", validators=[DataRequired(), Length(min=8, max=128)])
+    confirm_password = PasswordField("Confirm new password", validators=[
+        DataRequired(), EqualTo("new_password", message="Passwords must match."),
+    ])
+
+    def __init__(self, original_user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_user = original_user
+
+    def validate_current_password(self, field):
+        if not self.original_user.check_password(field.data):
+            raise ValidationError("Current password is incorrect.")
+
+
 class PlaylistForm(FlaskForm):
     name = StringField("Playlist name", validators=[DataRequired(), Length(max=100)])
 

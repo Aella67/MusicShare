@@ -7,7 +7,8 @@ from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message as MailMessage
 import mysql.connector
 from config import Config
-from forms import RegisterForm, LoginForm, PlaylistForm, TrackForm, RoomForm, JoinForm, GuestForm
+from forms import (RegisterForm, LoginForm, ProfileForm, ChangePasswordForm,
+                   PlaylistForm, TrackForm, RoomForm, JoinForm, GuestForm)
 from models.user import User
 from models.playlist import Playlist
 from models.track import Track
@@ -131,6 +132,45 @@ def logout():
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("home"))
+
+
+@app.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    """View and update the logged-in user's username and email."""
+    user = User.find_by_id(session["user_id"])
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+    form = ProfileForm(user, obj=user)
+    if form.validate_on_submit():
+        try:
+            user.update_profile(form.username.data.strip(),
+                                form.email.data.strip().lower())
+        except mysql.connector.IntegrityError:
+            flash("That username or email is already registered.", "danger")
+        else:
+            flash("Profile updated.", "success")
+            return redirect(url_for("profile"))
+    return render_template("profile.html", form=form,
+                           password_form=ChangePasswordForm(user, formdata=None))
+
+
+@app.route("/profile/password", methods=["POST"])
+@login_required
+def profile_password():
+    """Change the logged-in user's password (needs the current password)."""
+    user = User.find_by_id(session["user_id"])
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+    password_form = ChangePasswordForm(user)
+    if password_form.validate_on_submit():
+        user.update_password(password_form.new_password.data)
+        flash("Password updated.", "success")
+        return redirect(url_for("profile"))
+    form = ProfileForm(user, formdata=None, obj=user)
+    return render_template("profile.html", form=form, password_form=password_form)
 
 
 @app.route("/dashboard", methods=["GET", "POST"])
