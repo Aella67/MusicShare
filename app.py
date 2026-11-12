@@ -38,8 +38,13 @@ def login_required(view):
 @app.context_processor
 def inject_current_user():
     user_id = session.get("user_id")
-    return {"current_user": User.find_by_id(user_id) if user_id else None}
-
+    user = None
+    if user_id:
+        try:
+            user = User.find_by_id(user_id)
+        except Exception:
+            user = None   # if the database is down, the error page must still show
+    return {"current_user": user}
 
 def viewer_name():
     """Who is looking at the page: a username, a guest's display name, or None."""
@@ -122,6 +127,41 @@ def file_too_large(error):
     flash("That file is too big. The maximum size is 2 MB.", "danger")
     return redirect(url_for("profile"))
 
+def render_error(code, title, message):
+    return render_template("error.html", code=code, title=title, message=message), code
+
+
+@app.errorhandler(400)
+def bad_request(error):
+    return render_error(400, "Bad request",
+                        "Something was wrong with that request. Your session may have "
+                        "expired, so go back, refresh the page and try again.")
+
+
+@app.errorhandler(403)
+def forbidden(error):
+    return render_error(403, "Access denied",
+                        "You don't have permission to open this page. If it is a room, "
+                        "join it with the code and a display name first.")
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return render_error(404, "Page not found",
+                        "We couldn't find what you were looking for. The link may be "
+                        "wrong, or the room may have been deleted.")
+
+
+@app.errorhandler(429)
+def too_many_requests(error):
+    return render_error(429, "Slow down",
+                        "You are doing that too fast. Wait a second and try again.")
+
+
+@app.errorhandler(500)
+def server_error(error):
+    return render_error(500, "Something went wrong",
+                        "We hit a problem on our side. Please try again in a moment.")
 
 @app.route("/")
 def home():
