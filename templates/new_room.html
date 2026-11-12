@@ -5,11 +5,12 @@
 <div class="row justify-content-center">
   <div class="col-md-8 col-lg-6">
     <h1 class="h2 mb-4">Create a room</h1>
-    <form method="post" novalidate>
+    <form method="post">
       {{ form.hidden_tag() }}
       <div class="mb-3">
         {{ form.name.label(class="form-label") }}
-        {{ form.name(class="form-control" ~ (" is-invalid" if form.name.errors else "")) }}
+        {{ form.name(class="form-control" ~ (" is-invalid" if form.name.errors else ""),
+                     required=True, maxlength=100) }}
         {% for error in form.name.errors %}
           <div class="invalid-feedback">{{ error }}</div>
         {% endfor %}

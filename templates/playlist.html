@@ -12,7 +12,7 @@
             class="d-flex gap-2 mt-2">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input name="name" class="form-control form-control-sm" value="{{ playlist.name }}"
-               maxlength="100" required>
+               maxlength="100" required aria-label="New playlist name">
         <button type="submit" class="btn btn-primary btn-sm">Save</button>
       </form>
     </details>
@@ -28,19 +28,22 @@
 <div class="card mb-4">
   <div class="card-body">
     <h2 class="h5 card-title">Add a song</h2>
-    <form method="post" novalidate>
+    <form method="post">
       {{ form.hidden_tag() }}
       <div class="mb-3">
         {{ form.url.label(class="form-label") }}
         {{ form.url(class="form-control" ~ (" is-invalid" if form.url.errors else ""),
-                    placeholder="https://www.youtube.com/watch?v=... or a SoundCloud link") }}
+                    placeholder="https://www.youtube.com/watch?v=... or a SoundCloud link",
+                    required=True, maxlength=500) }}
+        <div class="form-text">Paste a YouTube video or SoundCloud link.</div>
         {% for error in form.url.errors %}
           <div class="invalid-feedback">{{ error }}</div>
         {% endfor %}
       </div>
       <div class="mb-3">
         {{ form.title.label(class="form-label") }}
-        {{ form.title(class="form-control" ~ (" is-invalid" if form.title.errors else "")) }}
+        {{ form.title(class="form-control" ~ (" is-invalid" if form.title.errors else ""),
+                      required=True, maxlength=200) }}
         {% for error in form.title.errors %}
           <div class="invalid-feedback">{{ error }}</div>
         {% endfor %}
@@ -81,7 +84,7 @@
                 class="d-flex gap-2 mt-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input name="title" class="form-control form-control-sm" value="{{ t.title }}"
-                   maxlength="200" required>
+                   maxlength="200" required aria-label="New song title">
             <button type="submit" class="btn btn-primary btn-sm">Save</button>
           </form>
         </details>

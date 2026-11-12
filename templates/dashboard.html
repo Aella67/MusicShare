@@ -10,10 +10,11 @@
       <div class="card-body">
         <h2 class="h5 card-title">My playlists</h2>
 
-        <form method="post" class="d-flex gap-2 mb-3" novalidate>
+        <form method="post" class="d-flex gap-2 mb-3">
           {{ form.hidden_tag() }}
+          <label for="{{ form.name.id }}" class="visually-hidden">Playlist name</label>
           {{ form.name(class="form-control" ~ (" is-invalid" if form.name.errors else ""),
-                       placeholder="New playlist name") }}
+                       placeholder="New playlist name", required=True, maxlength=100) }}
           <button type="submit" class="btn btn-primary">Create</button>
         </form>
         {% for error in form.name.errors %}
