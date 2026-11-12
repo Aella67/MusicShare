@@ -4,6 +4,7 @@ from functools import wraps
 from flask import (Flask, render_template, redirect, url_for, flash, session,
                    abort, jsonify, request)
 from flask_wtf import CSRFProtect
+from flask_mail import Mail, Message as MailMessage
 import mysql.connector
 from config import Config
 from forms import RegisterForm, LoginForm, PlaylistForm, TrackForm, RoomForm, JoinForm, GuestForm
@@ -18,6 +19,7 @@ from models.presence import Presence
 app = Flask(__name__)
 app.config.from_object(Config)
 csrf = CSRFProtect(app)
+mail = Mail(app)
 
 
 def login_required(view):
@@ -59,6 +61,29 @@ def can_listen(room):
     return is_host or (room.is_open and viewer_name() is not None)
 
 
+def send_welcome_email(username, email):
+    """Sends the welcome email. Returns True if it was sent, False if it failed.
+    A failed email must never break registration, so errors are caught here."""
+    try:
+        msg = MailMessage(
+            subject="Welcome to MusicShare!",
+            recipients=[email],
+            body=(
+                f"Hi {username},\n\n"
+                "Your MusicShare account is ready.\n\n"
+                "You can now log in, build playlists from YouTube and SoundCloud links, "
+                "create a room, and share the room code with friends so they can listen along.\n\n"
+                "Happy listening!\n"
+                "The MusicShare Team"
+            ),
+        )
+        mail.send(msg)
+        return True
+    except Exception:
+        app.logger.exception("Could not send welcome email")
+        return False
+
+
 @app.route("/")
 def home():
     return render_template("home.html")
@@ -68,15 +93,19 @@ def home():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        user = User(None, form.username.data.strip(),
-                    form.email.data.strip().lower(), None, False)
+        username = form.username.data.strip()
+        email = form.email.data.strip().lower()
+        user = User(None, username, email, None, False)
         user.set_password(form.password.data)
         try:
             user.save()
         except mysql.connector.IntegrityError:
             flash("That username or email is already registered.", "danger")
             return render_template("register.html", form=form)
-        flash("Account created! You can log in now.", "success")
+        if send_welcome_email(username, email):
+            flash("Account created! We sent a welcome email to your inbox. You can log in now.", "success")
+        else:
+            flash("Account created! We could not send the welcome email right now, but you can log in.", "warning")
         return redirect(url_for("login"))
     return render_template("register.html", form=form)
 
