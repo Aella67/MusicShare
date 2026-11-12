@@ -1,5 +1,7 @@
 import math
+import os
 import time
+import uuid
 from functools import wraps
 from flask import (Flask, render_template, redirect, url_for, flash, session,
                    abort, jsonify, request)
@@ -7,7 +9,7 @@ from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message as MailMessage
 import mysql.connector
 from config import Config
-from forms import (RegisterForm, LoginForm, ProfileForm, ChangePasswordForm,
+from forms import (RegisterForm, LoginForm, ProfileForm, ChangePasswordForm, PhotoForm,
                    PlaylistForm, TrackForm, RoomForm, JoinForm, GuestForm)
 from models.user import User
 from models.playlist import Playlist
@@ -85,6 +87,42 @@ def send_welcome_email(username, email):
         return False
 
 
+def avatar_folder():
+    """Where profile photos are stored. Created automatically if missing."""
+    folder = os.path.join(app.static_folder, "uploads", "avatars")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+def detect_image_type(file_storage):
+    """Looks at the first bytes of the file (not its name) to see what it really is.
+    Returns 'png', 'jpg', or None."""
+    header = file_storage.stream.read(8)
+    file_storage.stream.seek(0)
+    if header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if header.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    return None
+
+
+def delete_photo_file(filename):
+    """Deletes an old photo from disk. os.path.basename stops path tricks."""
+    if not filename:
+        return
+    path = os.path.join(avatar_folder(), os.path.basename(filename))
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+@app.errorhandler(413)
+def file_too_large(error):
+    flash("That file is too big. The maximum size is 2 MB.", "danger")
+    return redirect(url_for("profile"))
+
+
 @app.route("/")
 def home():
     return render_template("home.html")
@@ -153,7 +191,8 @@ def profile():
             flash("Profile updated.", "success")
             return redirect(url_for("profile"))
     return render_template("profile.html", form=form,
-                           password_form=ChangePasswordForm(user, formdata=None))
+                           password_form=ChangePasswordForm(user, formdata=None),
+                           photo_form=PhotoForm(formdata=None))
 
 
 @app.route("/profile/password", methods=["POST"])
@@ -170,7 +209,49 @@ def profile_password():
         flash("Password updated.", "success")
         return redirect(url_for("profile"))
     form = ProfileForm(user, formdata=None, obj=user)
-    return render_template("profile.html", form=form, password_form=password_form)
+    return render_template("profile.html", form=form, password_form=password_form,
+                           photo_form=PhotoForm(formdata=None))
+
+
+@app.route("/profile/photo", methods=["POST"])
+@login_required
+def profile_photo():
+    """Upload a new profile photo (JPG or PNG, checked by real contents)."""
+    user = User.find_by_id(session["user_id"])
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+    photo_form = PhotoForm()
+    if photo_form.validate_on_submit():
+        file = photo_form.photo.data
+        kind = detect_image_type(file)
+        if kind is None:
+            flash("That file is not a real JPG or PNG image.", "danger")
+        else:
+            filename = f"{uuid.uuid4().hex}.{kind}"   # random name, never the user's
+            file.save(os.path.join(avatar_folder(), filename))
+            old_photo = user.photo
+            user.update_photo(filename)
+            delete_photo_file(old_photo)
+            flash("Profile photo updated.", "success")
+    else:
+        for errors in photo_form.photo.errors:
+            flash(errors, "danger")
+    return redirect(url_for("profile"))
+
+
+@app.route("/profile/photo/remove", methods=["POST"])
+@login_required
+def profile_photo_remove():
+    user = User.find_by_id(session["user_id"])
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+    old_photo = user.photo
+    user.update_photo(None)
+    delete_photo_file(old_photo)
+    flash("Profile photo removed.", "info")
+    return redirect(url_for("profile"))
 
 
 @app.route("/dashboard", methods=["GET", "POST"])

@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import StringField, PasswordField, EmailField, SelectField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp, ValidationError
 from models.user import User
@@ -69,6 +70,15 @@ class ChangePasswordForm(FlaskForm):
     def validate_current_password(self, field):
         if not self.original_user.check_password(field.data):
             raise ValidationError("Current password is incorrect.")
+
+
+class PhotoForm(FlaskForm):
+    """Profile photo upload. The extension is checked here; the real file
+    contents are checked again in app.py."""
+    photo = FileField("Profile photo", validators=[
+        FileRequired(message="Choose an image first."),
+        FileAllowed(["jpg", "jpeg", "png"], "Only JPG or PNG images are allowed."),
+    ])
 
 
 class PlaylistForm(FlaskForm):

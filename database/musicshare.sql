@@ -18,6 +18,7 @@ CREATE TABLE `users` (
   `email` varchar(120) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
   `is_verified` tinyint(1) NOT NULL DEFAULT '0',
+  `photo` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),

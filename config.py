@@ -18,3 +18,6 @@ class Config:
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = ("MusicShare", os.environ.get("MAIL_USERNAME"))
+
+    # Uploads: Flask rejects any request bigger than this (2 MB).
+    MAX_CONTENT_LENGTH = 2 * 1024 * 1024

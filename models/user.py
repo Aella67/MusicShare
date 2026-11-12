@@ -4,12 +4,13 @@ from db import get_connection
 
 class User:
     def __init__(self, id=None, username=None, email=None,
-                 password_hash=None, is_verified=False):
+                 password_hash=None, is_verified=False, photo=None):
         self.id = id
         self.username = username
         self.email = email
         self.__password_hash = password_hash   # private: hidden from outside code
         self.is_verified = is_verified
+        self.photo = photo                     # file name of the profile photo, or None
 
     def set_password(self, password):
         self.__password_hash = generate_password_hash(password)
@@ -59,6 +60,20 @@ class User:
         finally:
             conn.close()
 
+    def update_photo(self, filename):
+        """Saves the profile photo file name (or None to remove the photo)."""
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET photo = %s WHERE id = %s",
+                (filename, self.id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        self.photo = filename
+
     @classmethod
     def _find(cls, column, value):
         conn = get_connection()
@@ -71,7 +86,8 @@ class User:
         if row is None:
             return None
         return cls(row["id"], row["username"], row["email"],
-                   row["password_hash"], bool(row["is_verified"]))
+                   row["password_hash"], bool(row["is_verified"]),
+                   row.get("photo"))
 
     @classmethod
     def find_by_email(cls, email):
