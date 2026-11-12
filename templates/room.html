@@ -11,16 +11,22 @@
   <div class="card my-4">
     <div class="card-body">
       <h2 class="h5 card-title">Invite listeners</h2>
-      <label class="form-label" for="room-code">Room code</label>
-      <div class="input-group mb-3">
-        <input id="room-code" class="form-control fs-5" value="{{ room.share_code }}" readonly>
-        <button class="btn btn-outline-secondary" type="button" data-copy="room-code">Copy</button>
-      </div>
-      <label class="form-label" for="room-link">Share link</label>
-      <div class="input-group">
-        <input id="room-link" class="form-control"
-               value="{{ url_for('room_page', code=room.share_code, _external=True) }}" readonly>
-        <button class="btn btn-outline-secondary" type="button" data-copy="room-link">Copy</button>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label" for="room-code">Room code</label>
+          <div class="input-group">
+            <input id="room-code" class="form-control fs-5" value="{{ room.share_code }}" readonly>
+            <button class="btn btn-outline-secondary" type="button" data-copy="room-code">Copy</button>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <label class="form-label" for="room-link">Share link</label>
+          <div class="input-group">
+            <input id="room-link" class="form-control"
+                   value="{{ url_for('room_page', code=room.share_code, _external=True) }}" readonly>
+            <button class="btn btn-outline-secondary" type="button" data-copy="room-link">Copy</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -51,25 +57,6 @@
   </div>
 {% endif %}
 
-{% if can_listen and tracks %}
-  <div class="card mb-4">
-    <div class="card-body">
-      <h2 class="h5 card-title">Now playing</h2>
-      <p id="now-playing" class="text-muted">Loading...</p>
-      <div class="ratio ratio-16x9 mb-3"><div id="player"></div></div>
-      <p id="player-note" class="small text-warning-emphasis mb-2"></p>
-      {% if is_host %}
-        <button id="btn-prev" class="btn btn-outline-secondary btn-sm" type="button">Previous</button>
-        <button id="btn-next" class="btn btn-outline-secondary btn-sm" type="button">Next song</button>
-        <span class="small text-muted ms-2">Listeners follow your player.</span>
-      {% else %}
-        <button id="btn-listen" class="btn btn-primary" type="button">&#9654; Start listening</button>
-        <span id="sync-status" class="small text-muted ms-2"></span>
-      {% endif %}
-    </div>
-  </div>
-{% endif %}
-
 {% if can_listen %}
 <style>
   .reaction-stage { position: relative; height: 140px; overflow: hidden;
@@ -78,74 +65,124 @@
                      align-items: center; pointer-events: none;
                      animation: react-float 3s ease-out forwards; }
   .reaction-emoji { font-size: 1.8rem; line-height: 1; }
-  .reaction-name { font-size: .7rem; color: #6c757d; max-width: 90px; overflow: hidden;
+  .reaction-name { font-size: .7rem; color: #4F3A57; max-width: 90px; overflow: hidden;
                    text-overflow: ellipsis; white-space: nowrap; }
   @keyframes react-float {
     0%   { transform: translateY(0);      opacity: 1; }
     100% { transform: translateY(-120px); opacity: 0; }
   }
+  #chat-log { height: 360px; overflow-y: auto; }
+  .song-scroll { max-height: 420px; overflow-y: auto; padding: 2px; }
+  @media (max-width: 991.98px) {
+    #chat-log { height: 260px; }
+    .song-scroll { max-height: 320px; }
+  }
 </style>
-
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="h5 card-title">Listening now <span id="listener-count" class="badge bg-secondary">0</span></h2>
-    <div id="listener-list" class="d-flex flex-wrap gap-2">
-      <span class="text-muted small">Checking...</span>
-    </div>
-  </div>
-</div>
-
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="h5 card-title">Reactions</h2>
-    <div id="reaction-stage" class="reaction-stage mb-3"></div>
-    <div id="reaction-buttons" class="d-flex flex-wrap gap-2"></div>
-  </div>
-</div>
-
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="h5 card-title">Chat</h2>
-    <div id="chat-log" class="border rounded p-2 mb-3" style="height: 240px; overflow-y: auto;">
-      <p id="chat-empty" class="text-muted small mb-0">No messages yet. Say hi!</p>
-    </div>
-    <form id="chat-form" class="d-flex gap-2" autocomplete="off">
-      <input id="chat-input" class="form-control" maxlength="300" placeholder="Type a message...">
-      <button type="submit" class="btn btn-primary">Send</button>
-    </form>
-  </div>
-</div>
 {% endif %}
 
-<h2 class="h5">Songs ({{ tracks|length }})</h2>
-{% if tracks %}
-  {% set ns = namespace(i=0) %}
-  <ul class="list-group">
-    {% for t in tracks %}
-      {% if t.source == 'youtube' %}
-        {% set song_index = ns.i %}
-        {% set ns.i = ns.i + 1 %}
-      {% else %}
-        {% set song_index = none %}
-      {% endif %}
-      <li class="list-group-item d-flex justify-content-between align-items-center"
-          {% if song_index is not none %}data-song-index="{{ song_index }}"{% endif %}>
-        <span><span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}</span>
-        <span class="d-flex align-items-center gap-2">
-          {% if song_index is none %}
-            <span class="text-muted small">not playable yet</span>
-          {% endif %}
-          <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">{{ t.source }}</span>
-          {% if is_host and song_index is not none %}
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-play-index="{{ song_index }}">Play</button>
-          {% endif %}
-        </span>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p class="text-muted">No songs yet.</p>
+<div class="row g-4 {% if not is_host and not can_listen %}mt-0{% endif %}">
+
+  {# ---------- LEFT: chat ---------- #}
+  {% if can_listen %}
+  <div class="col-lg-3 order-2 order-lg-1">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5 card-title">Chat</h2>
+        <div id="chat-log" class="border rounded p-2 mb-3">
+          <p id="chat-empty" class="text-muted small mb-0">No messages yet. Say hi!</p>
+        </div>
+        <form id="chat-form" class="d-flex gap-2" autocomplete="off">
+          <input id="chat-input" class="form-control" maxlength="300" placeholder="Type a message...">
+          <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- MIDDLE: now playing + listening now ---------- #}
+  {% if can_listen %}
+  <div class="col-lg-5 order-1 order-lg-2">
+    {% if tracks %}
+    <div class="card mb-4">
+      <div class="card-body">
+        <h2 class="h5 card-title">Now playing</h2>
+        <p id="now-playing" class="text-muted">Loading...</p>
+        <div class="ratio ratio-16x9 mb-3"><div id="player"></div></div>
+        <p id="player-note" class="small text-warning-emphasis mb-2"></p>
+        {% if is_host %}
+          <button id="btn-prev" class="btn btn-outline-secondary btn-sm" type="button">Previous</button>
+          <button id="btn-next" class="btn btn-outline-secondary btn-sm" type="button">Next song</button>
+          <span class="small text-muted ms-2">Listeners follow your player.</span>
+        {% else %}
+          <button id="btn-listen" class="btn btn-primary" type="button">&#9654; Start listening</button>
+          <span id="sync-status" class="small text-muted ms-2"></span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-body">
+        <h2 class="h5 card-title">Listening now <span id="listener-count" class="badge bg-secondary">0</span></h2>
+        <div id="listener-list" class="d-flex flex-wrap gap-2">
+          <span class="text-muted small">Checking...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- RIGHT: songs ---------- #}
+  <div class="{% if can_listen %}col-lg-4 order-3{% else %}col-12{% endif %}">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5 card-title">Songs ({{ tracks|length }})</h2>
+        {% if tracks %}
+          {% set ns = namespace(i=0) %}
+          <div class="song-scroll">
+          <ul class="list-group">
+            {% for t in tracks %}
+              {% if t.source == 'youtube' %}
+                {% set song_index = ns.i %}
+                {% set ns.i = ns.i + 1 %}
+              {% else %}
+                {% set song_index = none %}
+              {% endif %}
+              <li class="list-group-item d-flex justify-content-between align-items-center"
+                  {% if song_index is not none %}data-song-index="{{ song_index }}"{% endif %}>
+                <span><span class="text-muted me-2">{{ loop.index }}.</span>{{ t.title }}</span>
+                <span class="d-flex align-items-center gap-2">
+                  {% if song_index is none %}
+                    <span class="text-muted small">not playable yet</span>
+                  {% endif %}
+                  <span class="badge {{ 'bg-danger' if t.source == 'youtube' else 'bg-warning text-dark' }}">{{ t.source }}</span>
+                  {% if is_host and song_index is not none %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            data-play-index="{{ song_index }}">Play</button>
+                  {% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No songs yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---------- BOTTOM: quick reactions ---------- #}
+{% if can_listen %}
+<div class="card mt-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Quick reacts</h2>
+    <div id="reaction-stage" class="reaction-stage mb-3"></div>
+    <div id="reaction-buttons" class="d-flex flex-wrap justify-content-center gap-2"></div>
+  </div>
+</div>
 {% endif %}
 
 {% if can_listen and tracks %}

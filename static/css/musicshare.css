@@ -1,0 +1,127 @@
+/* MusicShare theme: purple palette. Loaded after Bootstrap, so it overrides it. */
+:root {
+  --ms-lush: #A393B6;
+  --ms-poetry: #856A93;
+  --ms-kikyo: #604268;
+  --ms-koki: #3A1F3C;
+  --ms-estate: #C4BED2;
+  --ms-bg: #EBE8F1;
+  --ms-card: #E3DFEB;
+  --ms-ink: #2E1830;
+  --ms-gold: #F2D36B;
+
+  --bs-primary: #604268;
+  --bs-primary-rgb: 96, 66, 104;
+  --bs-primary-bg-subtle: #D8D1E6;
+  --bs-link-color: #604268;
+  --bs-link-hover-color: #3A1F3C;
+  --bs-body-color: #2E1830;
+  --bs-border-color: #B3ABC6;
+  --bs-secondary-color: #4F3A57;
+}
+
+body {
+  font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
+  font-weight: 600;
+  color: var(--ms-ink);
+  background-color: var(--ms-bg);
+  background-image: radial-gradient(#CFC9DC 1.3px, transparent 1.4px);
+  background-size: 22px 22px;
+  min-height: 100vh;
+}
+h1, h2, h3, h4, h5, h6 { font-weight: 700; }
+.text-muted, .form-text { color: #4F3A57 !important; }
+
+/* ---------- navbar ---------- */
+.ms-nav { background: var(--ms-koki); padding: .6rem 0; }
+.ms-brand { display: flex; align-items: center; gap: .65rem; color: #F3EFF8; text-decoration: none; }
+.ms-brand:hover { color: #fff; }
+.ms-brand svg { flex: none; }
+.ms-brand span {
+  font-family: 'Cinzel', Georgia, serif; font-weight: 600;
+  letter-spacing: .18em; font-size: 1.15rem;
+}
+.ms-nav .nav-link { color: #DCD5E8; font-weight: 700; padding: .55rem .9rem; border-radius: 999px; }
+.ms-nav .nav-link:hover { color: #fff; background: rgba(243, 239, 248, .12); }
+.ms-nav .nav-link.active { color: var(--ms-koki); background: var(--ms-estate); }
+.ms-nav .navbar-toggler { border-color: rgba(243, 239, 248, .5); }
+.ms-nav .navbar-toggler:focus { box-shadow: 0 0 0 .2rem rgba(242, 211, 107, .6); }
+.ms-nav .navbar-text { color: #DCD5E8; }
+.ms-avatar {
+  width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
+  background: linear-gradient(135deg, #A393B6, #604268); color: #F5F2F9;
+  display: inline-grid; place-items: center; font-weight: 700; font-size: .9rem;
+}
+
+/* ---------- buttons ---------- */
+.btn { border-radius: 999px; font-weight: 700; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+.btn-sm { min-height: 34px; }
+.btn-primary {
+  --bs-btn-color: #F5F2F9; --bs-btn-hover-color: #fff; --bs-btn-active-color: #fff;
+  --bs-btn-bg: #604268; --bs-btn-border-color: #3A1F3C;
+  --bs-btn-hover-bg: #6B4C7A; --bs-btn-hover-border-color: #3A1F3C;
+  --bs-btn-active-bg: #3A1F3C; --bs-btn-active-border-color: #3A1F3C;
+  --bs-btn-disabled-bg: #856A93; --bs-btn-disabled-border-color: #856A93;
+  --bs-btn-focus-shadow-rgb: 163, 147, 182;
+  box-shadow: 0 3px 0 #3A1F3C;
+}
+.btn-outline-secondary, .btn-outline-light {
+  --bs-btn-color: #3A1F3C; --bs-btn-border-color: #856A93;
+  --bs-btn-hover-bg: #C4BED2; --bs-btn-hover-color: #2E1830; --bs-btn-hover-border-color: #856A93;
+  --bs-btn-active-bg: #A393B6; --bs-btn-active-color: #2E1830; --bs-btn-active-border-color: #856A93;
+}
+.ms-nav .btn-outline-light { --bs-btn-color: #F3EFF8; --bs-btn-border-color: rgba(243,239,248,.55); --bs-btn-hover-bg: #F3EFF8; --bs-btn-hover-color: #3A1F3C; }
+.btn-outline-danger { --bs-btn-color: #8A2F3F; --bs-btn-border-color: #C98C93; --bs-btn-hover-bg: #8A2F3F; --bs-btn-hover-border-color: #8A2F3F; }
+.btn-gold { background: var(--ms-gold); color: #2E1830; border: 0; box-shadow: 0 3px 0 #C9A83F; }
+.btn-gold:hover { background: #F6DD85; color: #2E1830; }
+.btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible { outline: 3px solid #604268; outline-offset: 2px; }
+
+/* ---------- cards, lists, forms ---------- */
+.card {
+  background: linear-gradient(180deg, #E8E4EF, #DDD9E6);
+  border: 0; border-radius: 22px;
+  box-shadow: 0 6px 0 rgba(120, 105, 150, .14), 0 14px 28px rgba(58, 31, 60, .16);
+}
+.card-title { color: #3A1F3C; }
+.list-group { --bs-list-group-bg: transparent; --bs-list-group-border-color: transparent; gap: .6rem; }
+.list-group-item {
+  background: #C4BED2; border: 0 !important; border-radius: 14px !important;
+  color: var(--ms-ink); font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 3px 8px rgba(58, 31, 60, .13);
+}
+.list-group-item.bg-primary-subtle { background: #A393B6 !important; outline: 2px solid #604268; }
+.form-control, .form-select {
+  border-radius: 12px; border: 2px solid #B3ABC6; background-color: #F4F2F8;
+  min-height: 44px; color: var(--ms-ink); font-weight: 600;
+}
+.form-control:focus, .form-select:focus { border-color: #604268; box-shadow: 0 0 0 .2rem rgba(163, 147, 182, .45); }
+.form-label { font-weight: 700; font-size: .92rem; }
+.form-control[readonly] { background-color: #E3DFEB; }
+.invalid-feedback, .text-danger { color: #8A2F3F !important; font-weight: 700; }
+.badge { border-radius: 8px; font-weight: 700; letter-spacing: .04em; }
+.badge.bg-danger { background-color: #856A93 !important; }
+.badge.bg-secondary { background-color: #604268 !important; }
+.badge.bg-primary { background-color: #604268 !important; }
+.badge.bg-warning { background-color: var(--ms-gold) !important; color: #2E1830 !important; }
+.badge.bg-light { background-color: #F4F2F8 !important; }
+code { color: #3A1F3C; background: #D8D1E6; padding: .1rem .4rem; border-radius: 6px; font-weight: 700; }
+details > summary { cursor: pointer; }
+.alert { border: 2px solid transparent; border-radius: 14px; font-weight: 700; }
+.alert-success { background: #E3DFEB; color: #3A1F3C; border-color: #A393B6; }
+.alert-info { background: #E6E2EE; color: #3A1F3C; border-color: #B3ABC6; }
+.alert-warning { background: #F7EFCF; color: #5A4710; border-color: #E5CB72; }
+.alert-danger { background: #F6DADA; color: #7A2634; border-color: #D9A3A8; }
+.alert-secondary { background: #DCD5E8; color: #3A1F3C; border-color: #B3ABC6; }
+
+/* room page pieces that already exist in room.html */
+.ratio > div#player, .ratio iframe { border-radius: 18px; overflow: hidden; }
+.reaction-stage { background: rgba(96, 66, 104, .08) !important; }
+#chat-log { background: #F4F2F8; border: 2px solid #B3ABC6 !important; border-radius: 14px !important; }
+
+footer.ms-footer { color: #4F3A57; font-size: .85rem; text-align: center; padding: 1.5rem 0 2rem; }
+
+@media (max-width: 767.98px) {
+  .ms-nav .navbar-nav { padding-top: .6rem; gap: .25rem; }
+  .ms-nav form { padding: .35rem .9rem; }
+  main.container { padding-left: 1rem; padding-right: 1rem; }
+}

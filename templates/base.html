@@ -4,43 +4,79 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}MusicShare{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo-badge.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/musicshare.css') }}" rel="stylesheet">
 </head>
 <body>
-  <nav class="navbar navbar-expand navbar-dark bg-dark">
+  <nav class="navbar navbar-expand-md navbar-dark ms-nav">
     <div class="container">
-      <a class="navbar-brand" href="{{ url_for('home') }}">🎵 MusicShare</a>
-            <ul class="navbar-nav ms-auto align-items-center">
-                      <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('join') }}">Join a room</a>
-        </li>
-        {% if current_user %}
+      <a class="ms-brand navbar-brand m-0" href="{{ url_for('home') }}" aria-label="MusicShare home">
+        <svg width="42" height="42" viewBox="0 0 256 256" aria-hidden="true">
+          <defs><linearGradient id="msLbl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A393B6"/><stop offset="1" stop-color="#604268"/></linearGradient></defs>
+          <rect width="256" height="256" rx="58" fill="#3A1F3C"/>
+          <g transform="translate(22 25.6) scale(.8)">
+            <circle cx="112" cy="128" r="88" fill="#2A2230"/>
+            <circle cx="112" cy="128" r="74" fill="none" stroke="#4A3D52" stroke-width="2"/>
+            <circle cx="112" cy="128" r="62" fill="none" stroke="#3E3247" stroke-width="2"/>
+            <circle cx="112" cy="128" r="50" fill="none" stroke="#4A3D52" stroke-width="2"/>
+            <path d="M50 78 A74 74 0 0 1 104 54" fill="none" stroke="#F2D36B" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="112" cy="128" r="36" fill="url(#msLbl)"/>
+            <path d="M104 112 L130 128 L104 144 Z" fill="#F3EFF8" stroke="#F3EFF8" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M214 94 A100 100 0 0 1 214 162" fill="none" stroke="#C4BED2" stroke-width="10" stroke-linecap="round"/>
+            <path d="M236 70 A128 128 0 0 1 236 186" fill="none" stroke="#A393B6" stroke-width="10" stroke-linecap="round" opacity=".75"/>
+          </g>
+        </svg>
+        <span>MUSICSHARE</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#msNav"
+              aria-controls="msNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="msNav">
+        <ul class="navbar-nav ms-auto align-items-md-center">
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'dashboard' %}active fw-semibold{% endif %}"
-               href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a class="nav-link {% if request.endpoint == 'join' %}active{% endif %}"
+               href="{{ url_for('join') }}">Join a room</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint in ('profile', 'profile_password') %}active fw-semibold{% endif %}"
-               href="{{ url_for('profile') }}">Profile</a>
-          </li>
-          <li class="nav-item">
-            <span class="navbar-text mx-3">Hi, {{ current_user.username }}</span>
-          </li>
-          <li class="nav-item">
-            <form method="post" action="{{ url_for('logout') }}" class="m-0">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
-            </form>
-          </li>
-        {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('login') }}">Log in</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('register') }}">Sign up</a>
-          </li>
-        {% endif %}
-      </ul>
+          {% if current_user %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint in ('dashboard', 'playlist_detail', 'new_room') %}active{% endif %}"
+                 href="{{ url_for('dashboard') }}">Dashboard</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint in ('profile', 'profile_password') %}active{% endif %}"
+                 href="{{ url_for('profile') }}">Profile</a>
+            </li>
+            <li class="nav-item d-flex align-items-center gap-2 px-md-3 py-2 py-md-0">
+              {% if current_user.photo %}
+                <img class="ms-avatar" src="{{ url_for('static', filename='uploads/avatars/' + current_user.photo) }}" alt="">
+              {% else %}
+                <span class="ms-avatar" aria-hidden="true">{{ current_user.username[0]|upper }}</span>
+              {% endif %}
+              <span class="navbar-text p-0">{{ current_user.username }}</span>
+            </li>
+            <li class="nav-item">
+              <form method="post" action="{{ url_for('logout') }}" class="m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
+              </form>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}"
+                 href="{{ url_for('login') }}">Log in</a>
+            </li>
+            <li class="nav-item ms-md-2 py-2 py-md-0">
+              <a class="btn btn-gold btn-sm" href="{{ url_for('register') }}">Sign up</a>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
     </div>
   </nav>
 
@@ -53,5 +89,7 @@
 
     {% block content %}{% endblock %}
   </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,5 +1,86 @@
 {% extends "base.html" %}
+{% block title %}MusicShare - Listen together{% endblock %}
+
 {% block content %}
-  <h1>Listen together</h1>
-  <p>Create a room, share the code, and everyone hears the same music.</p>
+<style>
+  .hero-title { font-family: 'Cinzel', Georgia, serif; letter-spacing: .06em; color: var(--ms-koki); }
+  .vinyl-wrap { display: grid; place-items: center; }
+  .vinyl { width: min(100%, 320px); height: auto; animation: vinyl-spin 14s linear infinite; filter: drop-shadow(0 14px 22px rgba(58, 31, 60, .35)); }
+  @keyframes vinyl-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .vinyl { animation: none; } }
+  .step-num {
+    width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--ms-kikyo); color: #F5F2F9; font-weight: 700; font-size: 1.1rem; flex: none;
+  }
+</style>
+
+<section class="row align-items-center g-4 py-3 py-md-5">
+  <div class="col-md-7">
+    <h1 class="hero-title display-4 mb-3">Listen together</h1>
+    <p class="fs-5 mb-4">
+      Create a room, share the code, and everyone hears the same music at the same time.
+      Chat and react with emojis while the songs play.
+    </p>
+    <div class="d-flex flex-wrap gap-2">
+      {% if current_user %}
+        <a href="{{ url_for('new_room') }}" class="btn btn-gold btn-lg">Create a room</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Go to dashboard</a>
+      {% else %}
+        <a href="{{ url_for('register') }}" class="btn btn-gold btn-lg">Sign up free</a>
+        <a href="{{ url_for('join') }}" class="btn btn-primary btn-lg">Join a room</a>
+      {% endif %}
+    </div>
+    <p class="mt-3 mb-0 text-muted">No account needed to listen. Just enter the room code.</p>
+  </div>
+
+  <div class="col-md-5 vinyl-wrap">
+    <svg class="vinyl" viewBox="0 0 240 240" role="img" aria-label="Spinning vinyl record">
+      <defs>
+        <linearGradient id="homeLbl" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#A393B6"/><stop offset="1" stop-color="#604268"/>
+        </linearGradient>
+      </defs>
+      <circle cx="120" cy="120" r="112" fill="#2A2230"/>
+      <circle cx="120" cy="120" r="96" fill="none" stroke="#4A3D52" stroke-width="2"/>
+      <circle cx="120" cy="120" r="82" fill="none" stroke="#3E3247" stroke-width="2"/>
+      <circle cx="120" cy="120" r="68" fill="none" stroke="#4A3D52" stroke-width="2"/>
+      <path d="M44 84 A96 96 0 0 1 108 30" fill="none" stroke="#F2D36B" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="120" cy="120" r="46" fill="url(#homeLbl)"/>
+      <circle cx="120" cy="120" r="7" fill="#EBE8F1"/>
+    </svg>
+  </div>
+</section>
+
+<section class="py-3">
+  <h2 class="h3 text-center mb-4">How it works</h2>
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card h-100"><div class="card-body d-flex gap-3">
+        <span class="step-num">1</span>
+        <div>
+          <h3 class="h5">Build a playlist</h3>
+          <p class="mb-0">Add songs from YouTube or SoundCloud by pasting a link.</p>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100"><div class="card-body d-flex gap-3">
+        <span class="step-num">2</span>
+        <div>
+          <h3 class="h5">Open a room</h3>
+          <p class="mb-0">Create a room and share its code or link with your friends.</p>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100"><div class="card-body d-flex gap-3">
+        <span class="step-num">3</span>
+        <div>
+          <h3 class="h5">Listen along</h3>
+          <p class="mb-0">Guests follow your player live, chat and send emoji reactions.</p>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
 {% endblock %}
